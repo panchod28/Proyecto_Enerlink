@@ -8,6 +8,25 @@
 
 ---
 
+## 👨‍💻 Autor
+
+**Juan David Rengifo Chavez**  
+Ingeniería de Sistemas  
+Unidades Tecnológicas de Santander  
+2026
+
+---
+
+## 📚 Contexto Académico
+
+Proyecto desarrollado para la asignatura:
+
+**Patrones de Software**  
+Docente: Eliecer Montero Ojeda  
+UTS – 2026
+
+---
+
 ## 📌 Descripción del Proyecto
 
 Enerlink es una plataforma backend orientada al intercambio de excedentes energéticos entre usuarios productores y consumidores.
@@ -217,25 +236,6 @@ Eventos monitoreados:
 - JUnit
 - Mockito
 - Git
-
----
-
-## 👨‍💻 Autor
-
-**Juan David Rengifo Chavez**  
-Ingeniería de Sistemas  
-Unidades Tecnológicas de Santander  
-2026
-
----
-
-## 📚 Contexto Académico
-
-Proyecto desarrollado para la asignatura:
-
-**Patrones de Software**  
-Docente: Eliecer Montero Ojeda  
-UTS – 2026
 
 ---
 
