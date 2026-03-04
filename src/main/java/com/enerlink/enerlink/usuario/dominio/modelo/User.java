@@ -9,7 +9,7 @@ public abstract class User {
     protected Long id;
     protected String nombre;
     protected String email;
-    protected String rol; // "PRODUCER" o "CONSUMER"
+    protected String rol; // "PRODUCER" o "CONSUMER" o "MIXED"
 
     public User(String nombre, String email, String rol) {
         this.nombre = nombre;
@@ -28,4 +28,11 @@ public abstract class User {
     public String getRol()    { return rol; }
 
     public void setId(Long id) { this.id = id; }
+
+    @Override
+    public String toString() {
+        return "User [id=" + id + ", nombre=" + nombre + ", email=" + email + ", rol=" + rol + "]";
+    }
+
+    
 }
