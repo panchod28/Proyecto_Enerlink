@@ -50,7 +50,7 @@ public class EnergyOfferService {
         EnergyOffer offer = factory.createEnergyOffer(null, producer, kwh, price);
 
         SaleProcess process = factory.createSaleProcess();
-        process.execute(offer);
+        process.execute(offer, producer, kwh);
 
         return repository.save(offer);
     }
@@ -64,7 +64,7 @@ public class EnergyOfferService {
                 .orElseThrow(() -> new RuntimeException("Oferta no encontrada con id: " + id));
     }
 
-    public EnergyOffer updateOffer(Long id, SaleType saleType, double kwh, double price) {
+    public EnergyOffer updateOffer(Long id, SaleType saleType, double kwh, double price, Long buyerId) {
         EnergyOffer existingOffer = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Oferta no encontrada con id: " + id));
 
@@ -73,10 +73,14 @@ public class EnergyOfferService {
         existingOffer.setPrice(price);
         existingOffer.setSaleType(saleType);
 
-        // Ejecutar proceso si es necesario
+        // Ejecutar proceso de venta
         EnergySaleFactory factory = factoryMap.get(saleType);
         SaleProcess process = factory.createSaleProcess();
-        process.execute(existingOffer);
+        
+        User buyer = userRepository.buscarPorId(buyerId)
+                .orElseThrow(() -> new RuntimeException("Comprador no encontrado"));
+        
+        process.execute(existingOffer, buyer, kwh);
 
         // Guardar el objeto existente
         return repository.save(existingOffer);

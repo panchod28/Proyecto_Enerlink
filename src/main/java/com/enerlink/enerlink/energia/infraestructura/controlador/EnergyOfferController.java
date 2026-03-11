@@ -58,7 +58,8 @@ public class EnergyOfferController {
                 id,
                 request.getSaleType(),
                 request.getKwh(),
-                request.getPrice());
+                request.getPrice(),
+                request.getBuyerId());
 
         return ResponseEntity.ok(updatedOffer);
     }

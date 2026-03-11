@@ -8,6 +8,15 @@ public class EnergyOfferRequest {
     private Long producerId;
     private double kwh;
     private double price;
+    private Long buyerId;
+
+    public Long getBuyerId() {
+        return buyerId;
+    }
+    public void setBuyerId(Long buyerId) {
+        this.buyerId = buyerId;
+    }
+    
     public SaleType getSaleType() {
         return saleType;
     }
