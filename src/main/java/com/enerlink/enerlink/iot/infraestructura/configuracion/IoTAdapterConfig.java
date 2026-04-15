@@ -1,7 +1,5 @@
 package com.enerlink.enerlink.iot.infraestructura.configuracion;
 
-import java.util.List;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -38,7 +36,10 @@ public class IoTAdapterConfig {
 
     @Bean
     @Primary
-    public IoTDataPort ioTDataPort(List<IoTDataPort> adapters) {
-        return new IoTDataPortComposite(adapters);
+    public IoTDataPort ioTDataPort(SmartHomeAdapter smartHomeAdapter, EnergyCloudAdapter energyCloudAdapter) {
+        IoTDataPortComposite composite = new IoTDataPortComposite();
+        composite.add(smartHomeAdapter);
+        composite.add(energyCloudAdapter);
+        return composite;
     }
 }

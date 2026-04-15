@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import com.enerlink.enerlink.iot.dominio.modelo.IoTDeviceData;
 import com.enerlink.enerlink.iot.dominio.puerto.IoTDataPort;
-import com.enerlink.enerlink.iot.infraestructura.adapter.IoTDataPortComposite;
 
 @Service
 public class IoTDeviceService {
@@ -28,9 +27,6 @@ public class IoTDeviceService {
 
     public IoTDeviceData getDeviceData(String deviceId, String provider) {
         logger.info("Service: Fetching device data for device: {} from provider: {}", deviceId, provider);
-        if (provider != null && ioTDataPort instanceof IoTDataPortComposite composite) {
-            composite.setSelectionStrategyByProvider(provider);
-        }
         return ioTDataPort.fetchDeviceData(deviceId);
     }
 

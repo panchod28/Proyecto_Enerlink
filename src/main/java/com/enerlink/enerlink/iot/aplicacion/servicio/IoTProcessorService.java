@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import com.enerlink.enerlink.iot.dominio.modelo.IoTDeviceData;
 import com.enerlink.enerlink.iot.dominio.modelo.IoTProcessor;
 import com.enerlink.enerlink.iot.dominio.puerto.IoTDataPort;
-import com.enerlink.enerlink.iot.infraestructura.adapter.IoTDataPortComposite;
 
 @Service
 public class IoTProcessorService {
@@ -44,11 +43,6 @@ public class IoTProcessorService {
     public IoTDeviceData processDeviceData(String deviceId, String provider) {
         logger.info("Processing device data for device: {} with provider strategy: {}", deviceId, provider);
         IoTProcessor processor = getProcessorForProvider(provider);
-        
-        if (provider != null && ioTDataPort instanceof IoTDataPortComposite composite) {
-            composite.setSelectionStrategyByProvider(provider);
-        }
-        
         return processor.processDeviceData(deviceId);
     }
 
