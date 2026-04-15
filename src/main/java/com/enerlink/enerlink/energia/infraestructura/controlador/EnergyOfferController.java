@@ -12,24 +12,24 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.enerlink.enerlink.energia.aplicacion.servicio.EnergyOfferService;
+import com.enerlink.enerlink.energia.aplicacion.servicio.EnergyTradingFacade;
 import com.enerlink.enerlink.energia.dominio.modelo.EnergyOffer;
 
 @RestController
 @RequestMapping("/api/offers")
 public class EnergyOfferController {
 
-    private final EnergyOfferService service;
+    private final EnergyTradingFacade facade;
 
-    public EnergyOfferController(EnergyOfferService service) {
-        this.service = service;
+    public EnergyOfferController(EnergyTradingFacade facade) {
+        this.facade = facade;
     }
 
     @PostMapping
     public ResponseEntity<EnergyOffer> create(
             @RequestBody EnergyOfferRequest request) {
 
-        EnergyOffer offer = service.createOffer(
+        EnergyOffer offer = facade.publishOffer(
                 request.getSaleType(),
                 request.getProducerId(),
                 request.getKwh(),
@@ -40,12 +40,12 @@ public class EnergyOfferController {
 
     @GetMapping
     public ResponseEntity<List<EnergyOffer>> getAll() {
-        return ResponseEntity.ok(service.getAll());
+        return ResponseEntity.ok(facade.getActiveOffers());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<EnergyOffer> getById(@PathVariable Long id) {
-        EnergyOffer offer = service.getOfferById(id);
+        EnergyOffer offer = facade.getOfferById(id);
         return ResponseEntity.ok(offer);
     }
 
@@ -54,19 +54,18 @@ public class EnergyOfferController {
             @PathVariable Long id,
             @RequestBody EnergyOfferRequest request) {
 
-        EnergyOffer updatedOffer = service.updateOffer(
-                id,
+        EnergyOffer updatedOffer = facade.publishOffer(
                 request.getSaleType(),
+                request.getProducerId(),
                 request.getKwh(),
-                request.getPrice(),
-                request.getBuyerId());
+                request.getPrice());
 
         return ResponseEntity.ok(updatedOffer);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
+        facade.deleteOffer(id);
         return ResponseEntity.noContent().build();
     }
 }
