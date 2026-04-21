@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+#archivos de bloqueo
+
+data/enerlinkdb.lock.db
