@@ -21,6 +21,7 @@ public class EnergyOfferEntity {
     private Long producerId;
     private double kwh;
     private double price;
+    private boolean available = true;
 
     @Enumerated(EnumType.STRING)
     private SaleType saleType;
@@ -66,6 +67,14 @@ public class EnergyOfferEntity {
         this.saleType = saleType;
     }
 
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void setAvailable(boolean available) {
+        this.available = available;
+    }
+
     @Override
     public String toString() {
         return "EnergyOfferEntity{" +
@@ -74,6 +83,7 @@ public class EnergyOfferEntity {
                 ", kwh=" + kwh +
                 ", price=" + price +
                 ", saleType=" + saleType +
+                ", available=" + available +
                 '}';
     }
 }

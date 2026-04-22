@@ -14,15 +14,20 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.enerlink.enerlink.energia.aplicacion.servicio.EnergyTradingFacade;
 import com.enerlink.enerlink.energia.dominio.modelo.EnergyOffer;
+import com.enerlink.enerlink.energia.dominio.modelo.Transaction;
+import com.enerlink.enerlink.usuario.dominio.modelo.User;
+import com.enerlink.enerlink.usuario.dominio.puerto.UserRepositoryPort;
 
 @RestController
 @RequestMapping("/api/offers")
 public class EnergyOfferController {
 
     private final EnergyTradingFacade facade;
+    private final UserRepositoryPort userRepository;
 
-    public EnergyOfferController(EnergyTradingFacade facade) {
+    public EnergyOfferController(EnergyTradingFacade facade, UserRepositoryPort userRepository) {
         this.facade = facade;
+        this.userRepository = userRepository;
     }
 
     @PostMapping
@@ -67,5 +72,41 @@ public class EnergyOfferController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         facade.deleteOffer(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{offerId}/sale")
+    public ResponseEntity<?> executeSale(
+            @PathVariable Long offerId,
+            @RequestBody SaleRequest request) {
+        try {
+            User buyer = userRepository.buscarPorId(request.getBuyerId())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + request.getBuyerId()));
+
+            Transaction transaction = facade.executeDirectSale(offerId, buyer);
+            return ResponseEntity.ok(transaction);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{offerId}/auction")
+    public ResponseEntity<?> executeAuction(
+            @PathVariable Long offerId,
+            @RequestBody AuctionRequest request) {
+        try {
+            User buyer = userRepository.buscarPorId(request.getBuyerId())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + request.getBuyerId()));
+
+            Transaction transaction = facade.executeAuction(offerId, buyer, request.getAmount());
+            return ResponseEntity.ok(transaction);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

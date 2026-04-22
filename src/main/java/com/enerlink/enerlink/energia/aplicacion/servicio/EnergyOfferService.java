@@ -56,7 +56,10 @@ public class EnergyOfferService {
     }
 
     public List<EnergyOffer> getAll() {
-        return repository.findAll();
+        return repository.findAll()
+                .stream()
+                .filter(EnergyOffer::isAvailable)
+                .collect(Collectors.toList());
     }
 
     public EnergyOffer getOfferById(Long id) {
@@ -76,10 +79,10 @@ public class EnergyOfferService {
         // Ejecutar proceso de venta
         EnergySaleFactory factory = factoryMap.get(saleType);
         SaleProcess process = factory.createSaleProcess();
-        
+
         User buyer = userRepository.buscarPorId(buyerId)
                 .orElseThrow(() -> new RuntimeException("Comprador no encontrado"));
-        
+
         process.execute(existingOffer, buyer, kwh);
 
         // Guardar el objeto existente

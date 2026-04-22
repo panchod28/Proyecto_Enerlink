@@ -10,22 +10,21 @@ public class AuctionSaleProcess implements SaleProcess {
 
     @Override
     public Transaction execute(EnergyOffer offer, User buyer, double kwh) {
-        double finalPrice = calculateWinningBid(offer);
-        
+        return execute(offer, buyer, kwh, offer.getPrice());
+    }
+
+    @Override
+    public Transaction execute(EnergyOffer offer, User buyer, double kwh, double customPrice) {
         Transaction transaction = Transaction.builder()
             .offer(offer)
             .buyer(buyer)
             .seller(offer.getProducer())
             .kwh(kwh)
-            .price(finalPrice)
+            .price(customPrice)
             .timestamp(LocalDateTime.now())
             .build();
-        
+
         System.out.println("Subasta ganada por: " + buyer.getNombre() + " - Precio final: " + transaction.getTotalAmount());
         return transaction;
-    }
-
-    private double calculateWinningBid(EnergyOffer offer) {
-        return offer.getPrice() * 0.9;
     }
 }

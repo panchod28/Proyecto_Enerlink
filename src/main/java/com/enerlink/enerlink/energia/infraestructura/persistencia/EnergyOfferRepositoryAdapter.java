@@ -11,8 +11,7 @@ import com.enerlink.enerlink.usuario.dominio.modelo.User;
 import com.enerlink.enerlink.usuario.dominio.puerto.UserRepositoryPort;
 
 @Component
-public class EnergyOfferRepositoryAdapter
-                implements EnergyOfferRepositoryPort {
+public class EnergyOfferRepositoryAdapter implements EnergyOfferRepositoryPort {
 
         private final EnergyOfferJpaRepository jpaRepository;
         private final UserRepositoryPort userRepository;
@@ -20,74 +19,74 @@ public class EnergyOfferRepositoryAdapter
         public EnergyOfferRepositoryAdapter(
                         EnergyOfferJpaRepository jpaRepository,
                         UserRepositoryPort userRepository) {
-
                 this.jpaRepository = jpaRepository;
                 this.userRepository = userRepository;
         }
 
         @Override
         public EnergyOffer save(EnergyOffer offer) {
-
                 EnergyOfferEntity entity = new EnergyOfferEntity();
                 entity.setId(offer.getId());
                 entity.setProducerId(offer.getProducer().getId());
                 entity.setKwh(offer.getKwh());
                 entity.setPrice(offer.getPrice());
                 entity.setSaleType(offer.getSaleType());
+                entity.setAvailable(offer.isAvailable());
 
                 EnergyOfferEntity saved = jpaRepository.save(entity);
 
-                // 🔥 reconstruimos el User
                 User producer = userRepository.buscarPorId(saved.getProducerId())
                                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-                return new EnergyOffer(
+                EnergyOffer result = new EnergyOffer(
                                 saved.getId(),
                                 producer,
                                 saved.getKwh(),
                                 saved.getPrice(),
                                 saved.getSaleType());
+                result.setAvailable(saved.isAvailable());
+                return result;
         }
 
         @Override
         public List<EnergyOffer> findAll() {
-
                 return jpaRepository.findAll()
                                 .stream()
                                 .map(entity -> {
-
                                         User producer = userRepository
                                                         .buscarPorId(entity.getProducerId())
                                                         .orElseThrow(() -> new RuntimeException(
                                                                         "Usuario no encontrado"));
 
-                                        return new EnergyOffer(
+                                        EnergyOffer offer = new EnergyOffer(
                                                         entity.getId(),
                                                         producer,
                                                         entity.getKwh(),
                                                         entity.getPrice(),
                                                         entity.getSaleType());
+                                        offer.setAvailable(entity.isAvailable());
+                                        return offer;
                                 })
                                 .toList();
         }
 
         @Override
         public Optional<EnergyOffer> findById(Long id) {
-
                 return jpaRepository.findById(id)
                                 .map(entity -> {
-
                                         User producer = userRepository
                                                         .buscarPorId(entity.getProducerId())
                                                         .orElseThrow(() -> new RuntimeException(
                                                                         "Usuario no encontrado"));
 
-                                        return new EnergyOffer(
+                                        EnergyOffer offer = new EnergyOffer(
                                                         entity.getId(),
                                                         producer,
                                                         entity.getKwh(),
                                                         entity.getPrice(),
                                                         entity.getSaleType());
+                                        offer.setAvailable(entity.isAvailable());
+                                        return offer;
                                 });
         }
 

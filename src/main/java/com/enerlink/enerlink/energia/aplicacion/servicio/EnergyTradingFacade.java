@@ -14,25 +14,11 @@ import com.enerlink.enerlink.energia.dominio.modelo.SaleType;
 import com.enerlink.enerlink.energia.dominio.modelo.Transaction;
 import com.enerlink.enerlink.energia.dominio.proceso.SaleProcess;
 import com.enerlink.enerlink.energia.dominio.puerto.EnergyOfferRepositoryPort;
+import com.enerlink.enerlink.energia.dominio.puerto.TransactionRepositoryPort;
 import com.enerlink.enerlink.usuario.dominio.modelo.User;
 
 import java.util.List;
 
-/**
- * Facade that provides a unified interface to the energy trading subsystem.
- * 
- * This class hides the complexity of the following subsystems:
- * <ul>
- *   <li>{@link EnergyOfferService} - Manages energy offer lifecycle (create, find, update state)</li>
- *   <li>{@link DirectSaleFactory} - Creates direct sale processes for fixed-price transactions</li>
- *   <li>{@link AuctionSaleFactory} - Creates auction sale processes for bid-based transactions</li>
- *   <li>{@link SaleProcess} implementations - Execute sale transactions (direct and auction)</li>
- *   <li>Transaction Decorator Chain - Applies validation, fees, and auditing to transactions</li>
- * </ul>
- * 
- * Clients can perform energy trading operations without knowing the internal
- * details of offer management, sale process selection, or transaction decoration.
- */
 @Service
 public class EnergyTradingFacade {
 
@@ -40,16 +26,19 @@ public class EnergyTradingFacade {
     private final DirectSaleFactory directSaleFactory;
     private final AuctionSaleFactory auctionSaleFactory;
     private final EnergyOfferRepositoryPort repositoryPort;
+    private final TransactionRepositoryPort transactionRepositoryPort;
 
     public EnergyTradingFacade(
             EnergyOfferService energyOfferService,
             DirectSaleFactory directSaleFactory,
             AuctionSaleFactory auctionSaleFactory,
-            EnergyOfferRepositoryPort repositoryPort) {
+            EnergyOfferRepositoryPort repositoryPort,
+            TransactionRepositoryPort transactionRepositoryPort) {
         this.energyOfferService = energyOfferService;
         this.directSaleFactory = directSaleFactory;
         this.auctionSaleFactory = auctionSaleFactory;
         this.repositoryPort = repositoryPort;
+        this.transactionRepositoryPort = transactionRepositoryPort;
     }
 
     public EnergyOffer publishOffer(SaleType saleType, Long producerId, double kwh, double price) {
@@ -66,8 +55,13 @@ public class EnergyTradingFacade {
 
         SaleProcess saleProcess = directSaleFactory.createSaleProcess();
         Transaction transaction = saleProcess.execute(offer, buyer, offer.getKwh());
+        Transaction decoratedTransaction = applyDecoratorChain(transaction);
+        Transaction savedTransaction = transactionRepositoryPort.save(decoratedTransaction);
 
-        return applyDecoratorChain(transaction);
+        offer.setAvailable(false);
+        repositoryPort.save(offer);
+
+        return savedTransaction;
     }
 
     public Transaction executeAuction(Long offerId, User buyer, double bidAmount) {
@@ -84,8 +78,8 @@ public class EnergyTradingFacade {
 
         SaleProcess auctionProcess = auctionSaleFactory.createSaleProcess();
         Transaction transaction = auctionProcess.execute(offer, buyer, offer.getKwh(), bidAmount);
-
-        return applyDecoratorChain(transaction);
+        Transaction decoratedTransaction = applyDecoratorChain(transaction);
+        return transactionRepositoryPort.save(decoratedTransaction);
     }
 
     public List<EnergyOffer> getActiveOffers() {

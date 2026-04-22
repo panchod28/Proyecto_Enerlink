@@ -319,7 +319,7 @@ class EnergyTradingFacadeTest {
         @DisplayName("Facade should be the only dependency for trading operations")
         void facade_should_be_only_dependency() {
             EnergyTradingFacade facadeInstance = new EnergyTradingFacade(
-                    energyOfferService, directSaleFactory, auctionSaleFactory, repositoryPort);
+                    energyOfferService, directSaleFactory, auctionSaleFactory, repositoryPort, null);
 
             assertNotNull(facadeInstance);
         }
