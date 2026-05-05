@@ -57,9 +57,17 @@ public class EnergyOfferController {
     @GetMapping("/paginated")
     public ResponseEntity<Page<EnergyOffer>> getAllPaginated(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(facade.getActiveOffers(pageable));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String saleType,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Double minKwh,
+            @RequestParam(required = false) Double maxKwh,
+            @RequestParam(required = false) String sortBy) {
+
+        return ResponseEntity.ok(
+            facade.getOffersWithFilters(saleType, minPrice, maxPrice, minKwh, maxKwh, page, size, sortBy)
+        );
     }
 
     @GetMapping("/stats")

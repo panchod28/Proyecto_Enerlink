@@ -4,6 +4,8 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import com.enerlink.enerlink.energia.dominio.componente.ConcreteTransactionComponent;
 import com.enerlink.enerlink.energia.dominio.componente.TransactionComponent;
@@ -92,6 +94,31 @@ public class EnergyTradingFacade {
 
     public Page<EnergyOffer> getActiveOffers(Pageable pageable) {
         return energyOfferService.getAll(pageable);
+    }
+
+    public Page<EnergyOffer> getOffersWithFilters(
+            String saleType,
+            Double minPrice,
+            Double maxPrice,
+            Double minKwh,
+            Double maxKwh,
+            int page,
+            int size,
+            String sortBy) {
+
+        SaleType type = (saleType != null && !saleType.isBlank())
+            ? SaleType.valueOf(saleType) : null;
+
+        Sort sort = switch (sortBy != null ? sortBy : "") {
+            case "price_asc"  -> Sort.by(Sort.Direction.ASC, "price");
+            case "price_desc" -> Sort.by(Sort.Direction.DESC, "price");
+            case "kwh_asc"    -> Sort.by(Sort.Direction.ASC, "kwh");
+            case "kwh_desc"   -> Sort.by(Sort.Direction.DESC, "kwh");
+            default           -> Sort.unsorted();
+        };
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return energyOfferService.getWithFilters(type, minPrice, maxPrice, minKwh, maxKwh, pageable);
     }
 
     public List<EnergyOffer> getOffersByProducer(Long producerId) {

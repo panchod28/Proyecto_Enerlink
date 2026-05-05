@@ -17,6 +17,14 @@ public interface EnergyOfferRepositoryPort {
 
     Page<EnergyOffer> findAll(Pageable pageable);
 
+    Page<EnergyOffer> findWithFilters(
+        SaleType saleType,
+        Double minPrice,
+        Double maxPrice,
+        Double minKwh,
+        Double maxKwh,
+        Pageable pageable);
+
     List<EnergyOffer> findByProducerId(Long producerId);
 
     Optional<EnergyOffer> findById(Long id);

@@ -91,6 +91,31 @@ public class EnergyOfferRepositoryAdapter implements EnergyOfferRepositoryPort {
                 });
     }
 
+    @Override
+    public Page<EnergyOffer> findWithFilters(
+            SaleType saleType,
+            Double minPrice,
+            Double maxPrice,
+            Double minKwh,
+            Double maxKwh,
+            Pageable pageable) {
+        return jpaRepository.findWithFilters(saleType, minPrice, maxPrice, minKwh, maxKwh, pageable)
+                .map(entity -> {
+                    User producer = userRepository
+                            .buscarPorId(entity.getProducerId())
+                            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+                    EnergyOffer offer = new EnergyOffer(
+                            entity.getId(),
+                            producer,
+                            entity.getKwh(),
+                            entity.getPrice(),
+                            entity.getSaleType());
+                    offer.setAvailable(entity.isAvailable());
+                    return offer;
+                });
+    }
+
         @Override
         public List<EnergyOffer> findByProducerId(Long producerId) {
                 return jpaRepository.findByProducerIdAndAvailableTrue(producerId)

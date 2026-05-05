@@ -69,6 +69,16 @@ public class EnergyOfferService {
         return repository.findAll(pageable);
     }
 
+    public Page<EnergyOffer> getWithFilters(
+            SaleType saleType,
+            Double minPrice,
+            Double maxPrice,
+            Double minKwh,
+            Double maxKwh,
+            Pageable pageable) {
+        return repository.findWithFilters(saleType, minPrice, maxPrice, minKwh, maxKwh, pageable);
+    }
+
     public List<EnergyOffer> getByProducerId(Long producerId) {
         return repository.findByProducerId(producerId);
     }
