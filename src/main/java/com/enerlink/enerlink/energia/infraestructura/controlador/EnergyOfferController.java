@@ -1,7 +1,11 @@
 package com.enerlink.enerlink.energia.infraestructura.controlador;
 
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,10 +14,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.enerlink.enerlink.energia.aplicacion.servicio.EnergyTradingFacade;
 import com.enerlink.enerlink.energia.dominio.modelo.EnergyOffer;
+import com.enerlink.enerlink.energia.dominio.modelo.SaleType;
 import com.enerlink.enerlink.energia.dominio.modelo.Transaction;
 import com.enerlink.enerlink.usuario.dominio.modelo.User;
 import com.enerlink.enerlink.usuario.dominio.puerto.UserRepositoryPort;
@@ -46,6 +52,30 @@ public class EnergyOfferController {
     @GetMapping
     public ResponseEntity<List<EnergyOffer>> getAll() {
         return ResponseEntity.ok(facade.getActiveOffers());
+    }
+
+    @GetMapping("/paginated")
+    public ResponseEntity<Page<EnergyOffer>> getAllPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(facade.getActiveOffers(pageable));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<?> getStats() {
+        long directCount = facade.countByType(SaleType.DIRECT);
+        long auctionCount = facade.countByType(SaleType.AUCTION);
+
+        return ResponseEntity.ok(Map.of(
+                "activeDirectOffers", directCount,
+                "activeAuctions", auctionCount));
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<EnergyOffer>> getMyOffers(
+            @RequestParam Long producerId) {
+        return ResponseEntity.ok(facade.getOffersByProducer(producerId));
     }
 
     @GetMapping("/{id}")

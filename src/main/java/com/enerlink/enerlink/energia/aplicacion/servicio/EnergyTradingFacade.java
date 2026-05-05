@@ -2,6 +2,9 @@ package com.enerlink.enerlink.energia.aplicacion.servicio;
 
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.enerlink.enerlink.energia.dominio.componente.ConcreteTransactionComponent;
 import com.enerlink.enerlink.energia.dominio.componente.TransactionComponent;
 import com.enerlink.enerlink.energia.dominio.decorador.AuditingTransactionDecorator;
@@ -50,7 +53,8 @@ public class EnergyTradingFacade {
                 .orElseThrow(() -> new RuntimeException("Oferta no encontrada con id: " + offerId));
 
         if (offer.getSaleType() != SaleType.DIRECT) {
-            throw new IllegalStateException("La oferta no es de tipo venta directa. Tipo actual: " + offer.getSaleType());
+            throw new IllegalStateException(
+                    "La oferta no es de tipo venta directa. Tipo actual: " + offer.getSaleType());
         }
 
         SaleProcess saleProcess = directSaleFactory.createSaleProcess();
@@ -86,6 +90,14 @@ public class EnergyTradingFacade {
         return energyOfferService.getAll();
     }
 
+    public Page<EnergyOffer> getActiveOffers(Pageable pageable) {
+        return energyOfferService.getAll(pageable);
+    }
+
+    public List<EnergyOffer> getOffersByProducer(Long producerId) {
+        return energyOfferService.getByProducerId(producerId);
+    }
+
     public EnergyOffer getOfferById(Long id) {
         return repositoryPort.findById(id)
                 .orElseThrow(() -> new RuntimeException("Oferta no encontrada con id: " + id));
@@ -110,5 +122,9 @@ public class EnergyTradingFacade {
                 .price(component.getPrice())
                 .timestamp(component.getTimestamp())
                 .build();
+    }
+
+    public long countByType(SaleType saleType) {
+        return energyOfferService.countAvailableByType(saleType);
     }
 }

@@ -5,6 +5,9 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.enerlink.enerlink.energia.dominio.factory.EnergySaleFactory;
@@ -62,6 +65,14 @@ public class EnergyOfferService {
                 .collect(Collectors.toList());
     }
 
+    public Page<EnergyOffer> getAll(Pageable pageable) {
+        return repository.findAll(pageable);
+    }
+
+    public List<EnergyOffer> getByProducerId(Long producerId) {
+        return repository.findByProducerId(producerId);
+    }
+
     public EnergyOffer getOfferById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Oferta no encontrada con id: " + id));
@@ -91,5 +102,9 @@ public class EnergyOfferService {
 
     public void delete(Long id) {
         repository.deleteById(id);
+    }
+
+    public long countAvailableByType(SaleType saleType) {
+        return repository.countByAvailableTrueAndSaleType(saleType);
     }
 }
