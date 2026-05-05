@@ -2,11 +2,7 @@ package com.enerlink.enerlink.iot.infraestructura.controlador;
 
 import java.util.List;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.enerlink.enerlink.iot.aplicacion.servicio.IoTDeviceService;
 import com.enerlink.enerlink.iot.dominio.modelo.IoTDeviceData;
@@ -43,5 +39,25 @@ public class IoTDeviceController {
     @GetMapping("/type")
     public List<IoTDeviceData> getDevicesByType(@RequestParam String type) {
         return ioTDeviceService.getDevicesByType(type);
+    }
+
+    @PostMapping
+    public IoTDeviceData createDevice(@RequestBody IoTDeviceData device) {
+        return ioTDeviceService.createDevice(device);
+    }
+
+    @PutMapping("/{id}")
+    public IoTDeviceData updateDevice(@PathVariable Long id, @RequestBody IoTDeviceData device) {
+        return ioTDeviceService.updateDevice(id, device);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteDevice(@PathVariable Long id) {
+        ioTDeviceService.deleteDevice(id);
+    }
+
+    @GetMapping("/user/{userId}")
+    public List<IoTDeviceData> getDevicesByUserId(@PathVariable Long userId) {
+        return ioTDeviceService.getDevicesByUserId(userId);
     }
 }

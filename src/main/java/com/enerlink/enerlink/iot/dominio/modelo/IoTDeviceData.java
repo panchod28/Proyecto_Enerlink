@@ -2,6 +2,7 @@ package com.enerlink.enerlink.iot.dominio.modelo;
 
 public class IoTDeviceData {
 
+    private Long id;
     private String deviceId;
     private String deviceName;
     private DeviceType deviceType;
@@ -10,6 +11,7 @@ public class IoTDeviceData {
     private String location;
     private String status;
     private long timestamp;
+    private Long userId;
 
     public IoTDeviceData() {
     }
@@ -27,75 +29,41 @@ public class IoTDeviceData {
         this.timestamp = timestamp;
     }
 
-    public String getDeviceId() {
-        return deviceId;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setDeviceId(String deviceId) {
-        this.deviceId = deviceId;
-    }
+    public String getDeviceId() { return deviceId; }
+    public void setDeviceId(String deviceId) { this.deviceId = deviceId; }
 
-    public String getDeviceName() {
-        return deviceName;
-    }
+    public String getDeviceName() { return deviceName; }
+    public void setDeviceName(String deviceName) { this.deviceName = deviceName; }
 
-    public void setDeviceName(String deviceName) {
-        this.deviceName = deviceName;
-    }
+    public DeviceType getDeviceType() { return deviceType; }
+    public void setDeviceType(DeviceType deviceType) { this.deviceType = deviceType; }
 
-    public DeviceType getDeviceType() {
-        return deviceType;
-    }
+    public double getCurrentReading() { return currentReading; }
+    public void setCurrentReading(double currentReading) { this.currentReading = currentReading; }
 
-    public void setDeviceType(DeviceType deviceType) {
-        this.deviceType = deviceType;
-    }
+    public String getUnit() { return unit; }
+    public void setUnit(String unit) { this.unit = unit; }
 
-    public double getCurrentReading() {
-        return currentReading;
-    }
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
 
-    public void setCurrentReading(double currentReading) {
-        this.currentReading = currentReading;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public String getUnit() {
-        return unit;
-    }
+    public long getTimestamp() { return timestamp; }
+    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
 
-    public void setUnit(String unit) {
-        this.unit = unit;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
-    }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 
     @Override
     public String toString() {
-        return "IoTDeviceData{deviceId='" + deviceId + "', deviceName='" + deviceName +
+        return "IoTDeviceData{id=" + id + ", deviceId='" + deviceId + "', deviceName='" + deviceName +
                 "', deviceType=" + deviceType + ", currentReading=" + currentReading +
                 ", unit='" + unit + "', location='" + location + "', status='" + status +
-                "', timestamp=" + timestamp + "}";
+                "', timestamp=" + timestamp + ", userId=" + userId + "}";
     }
 }

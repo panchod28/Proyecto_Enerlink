@@ -11,6 +11,9 @@ import com.enerlink.enerlink.iot.infraestructura.adapter.EnergyCloudProviderClie
 import com.enerlink.enerlink.iot.infraestructura.adapter.IoTDataPortComposite;
 import com.enerlink.enerlink.iot.infraestructura.adapter.SmartHomeAdapter;
 import com.enerlink.enerlink.iot.infraestructura.adapter.SmartHomeProviderClient;
+import com.enerlink.enerlink.iot.infraestructura.persistencia.IoTDeviceJpaRepository;
+import com.enerlink.enerlink.iot.infraestructura.persistencia.IoTDeviceRepositoryAdapter;
+import com.enerlink.enerlink.usuario.infraestructura.persistencia.UserJpaRepository;
 
 import java.time.Duration;
 
@@ -46,8 +49,15 @@ public class IoTAdapterConfig {
     }
 
     @Bean
+    public IoTDeviceRepositoryAdapter ioTDeviceRepositoryAdapter(
+            IoTDeviceJpaRepository ioTDeviceJpaRepository,
+            UserJpaRepository userJpaRepository) {
+        return new IoTDeviceRepositoryAdapter(ioTDeviceJpaRepository, userJpaRepository);
+    }
+
+    @Bean
     @Primary
-    public IoTDataPort ioTDataPort(IoTDataPortComposite ioTDataPortComposite) {
-        return new CachingIoTDataProxy(ioTDataPortComposite, Duration.ofMinutes(5));
+    public IoTDataPort ioTDataPort(IoTDeviceRepositoryAdapter ioTDeviceRepositoryAdapter) {
+        return new CachingIoTDataProxy(ioTDeviceRepositoryAdapter, Duration.ofMinutes(5));
     }
 }
