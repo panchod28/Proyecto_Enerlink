@@ -24,10 +24,52 @@ public interface EnergyOfferJpaRepository
            "AND (:minKwh IS NULL OR e.kwh >= :minKwh) " +
            "AND (:maxKwh IS NULL OR e.kwh <= :maxKwh)")
     Page<EnergyOfferEntity> findWithFilters(
-        @Param("saleType") SaleType saleType,
-        @Param("minPrice") Double minPrice,
-        @Param("maxPrice") Double maxPrice,
-        @Param("minKwh") Double minKwh,
-        @Param("maxKwh") Double maxKwh,
-        Pageable pageable);
+         @Param("saleType") SaleType saleType,
+         @Param("minPrice") Double minPrice,
+         @Param("maxPrice") Double maxPrice,
+         @Param("minKwh") Double minKwh,
+         @Param("maxKwh") Double maxKwh,
+         Pageable pageable);
+
+    @Query(value = """
+        SELECT
+            eo.sale_type,
+            COUNT(DISTINCT eo.id)                        AS total,
+            COUNT(DISTINCT t.id)                         AS sold,
+            COUNT(DISTINCT eo.id) - COUNT(DISTINCT t.id) AS active,
+            COALESCE(AVG(t.price), 0)                    AS avgPrice,
+            COALESCE(AVG(eo.kwh), 0)                     AS avgKwh
+        FROM energy_offer eo
+        LEFT JOIN transactions t ON t.offer_id = eo.id
+            AND (:startDate IS NULL OR t.timestamp >= TO_TIMESTAMP(:startDate, 'YYYY-MM-DD'))
+            AND (:endDate   IS NULL OR t.timestamp <= TO_TIMESTAMP(:endDate, 'YYYY-MM-DD') + INTERVAL '1 day')
+        WHERE (:saleType IS NULL OR eo.sale_type = :saleType)
+        GROUP BY eo.sale_type
+        """, nativeQuery = true)
+    List<Object[]> findMarketDistribution(
+        @Param("startDate") String startDate,
+        @Param("endDate")   String endDate,
+        @Param("saleType")  String saleType);
+
+    @Query(value = """
+        SELECT
+            TO_CHAR(DATE_TRUNC('week', t.timestamp), 'YYYY-MM-DD') AS week,
+            eo.sale_type                                            AS saleType,
+            AVG(t.price)                                           AS avgPrice,
+            COUNT(t.id)                                            AS transactions,
+            SUM(t.kwh)                                             AS totalKwh
+        FROM transactions t
+        JOIN energy_offer eo ON eo.id = t.offer_id
+        WHERE (:startDate IS NULL OR t.timestamp >= TO_TIMESTAMP(:startDate, 'YYYY-MM-DD'))
+          AND (:endDate   IS NULL OR t.timestamp <= TO_TIMESTAMP(:endDate, 'YYYY-MM-DD') + INTERVAL '1 day')
+          AND (:saleType  IS NULL OR eo.sale_type = :saleType)
+        GROUP BY 1, 2
+        HAVING (:minAvgPrice IS NULL OR AVG(t.price) >= :minAvgPrice)
+        ORDER BY 1 ASC
+        """, nativeQuery = true)
+    List<Object[]> findWeeklyPriceTrend(
+        @Param("startDate")   String startDate,
+        @Param("endDate")     String endDate,
+        @Param("saleType")    String saleType,
+        @Param("minAvgPrice") Double minAvgPrice);
 }

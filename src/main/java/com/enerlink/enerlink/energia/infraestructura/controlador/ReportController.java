@@ -24,14 +24,17 @@ public class ReportController {
     private final TransactionJpaRepository transactionRepository;
     private final IoTDeviceJpaRepository iotDeviceRepository;
     private final com.enerlink.enerlink.usuario.infraestructura.persistencia.UserJpaRepository userRepository;
+    private final com.enerlink.enerlink.energia.infraestructura.persistencia.EnergyOfferJpaRepository offerJpaRepository;
 
     public ReportController(
             TransactionJpaRepository transactionRepository,
             IoTDeviceJpaRepository iotDeviceRepository,
-            com.enerlink.enerlink.usuario.infraestructura.persistencia.UserJpaRepository userRepository) {
+            com.enerlink.enerlink.usuario.infraestructura.persistencia.UserJpaRepository userRepository,
+            com.enerlink.enerlink.energia.infraestructura.persistencia.EnergyOfferJpaRepository offerJpaRepository) {
         this.transactionRepository = transactionRepository;
         this.iotDeviceRepository   = iotDeviceRepository;
         this.userRepository        = userRepository;
+        this.offerJpaRepository    = offerJpaRepository;
     }
 
     @GetMapping("/volume")
@@ -91,6 +94,73 @@ public class ReportController {
                     ? Math.round(directKwh / totalKwh * 100 * 10.0) / 10.0 : 0.0
             ),
             "breakdown", breakdown
+        ));
+    }
+
+    @GetMapping("/market-summary")
+    public ResponseEntity<?> getMarketSummary(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String saleType,
+            @RequestParam(required = false) Double minAvgPrice) {
+
+        // Distribution by sale type
+        List<Object[]> distribution = offerJpaRepository.findMarketDistribution(startDate, endDate, saleType);
+        List<Map<String, Object>> typeBreakdown = distribution.stream().map(row -> {
+            String saleTypeStr = (String) row[0];
+            long   total    = ((Number) row[1]).longValue();
+            long   sold     = ((Number) row[2]).longValue();
+            long   active   = ((Number) row[3]).longValue();
+            double avgPrice = ((Number) row[4]).doubleValue();
+            double avgKwh   = ((Number) row[5]).doubleValue();
+            double convRate = total > 0 ? (double) sold / total * 100 : 0;
+
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("saleType",       saleTypeStr);
+            m.put("total",          total);
+            m.put("sold",           sold);
+            m.put("active",         active);
+            m.put("conversionRate", Math.round(convRate * 100.0) / 100.0);
+            m.put("avgPrice",       round(avgPrice));
+            m.put("avgKwh",         round(avgKwh));
+            return m;
+        }).collect(Collectors.toList());
+
+        // Global KPIs
+        long totalOffers = typeBreakdown.stream()
+            .mapToLong(r -> ((Number) r.get("total")).longValue()).sum();
+        long totalSold = typeBreakdown.stream()
+            .mapToLong(r -> ((Number) r.get("sold")).longValue()).sum();
+        double globalConversion = totalOffers > 0
+            ? Math.round((double) totalSold / totalOffers * 100 * 100.0) / 100.0 : 0;
+
+        // Weekly price trend
+        List<Object[]> trendRows = offerJpaRepository.findWeeklyPriceTrend(startDate, endDate, saleType, minAvgPrice);
+        List<Map<String, Object>> weeklyTrend = trendRows.stream().map(row -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("week",         row[0]);
+            m.put("saleType",     row[1]);
+            m.put("avgPrice",     round(((Number) row[2]).doubleValue()));
+            m.put("transactions", ((Number) row[3]).longValue());
+            m.put("totalKwh",     round(((Number) row[4]).doubleValue()));
+            return m;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(Map.of(
+            "filters", Map.of(
+                "startDate",   startDate   != null ? startDate   : "",
+                "endDate",     endDate     != null ? endDate     : "",
+                "saleType",    saleType    != null ? saleType    : "",
+                "minAvgPrice", minAvgPrice != null ? minAvgPrice : 0.0
+            ),
+            "kpis", Map.of(
+                "totalOffers",      totalOffers,
+                "totalSold",        totalSold,
+                "totalActive",      totalOffers - totalSold,
+                "globalConversion", globalConversion
+            ),
+            "typeBreakdown", typeBreakdown,
+            "weeklyTrend",   weeklyTrend
         ));
     }
 
