@@ -30,4 +30,18 @@ public interface TransactionJpaRepository
             ORDER BY 1 ASC, 2
             """, nativeQuery = true)
         List<Object[]> findVolumeByPeriodAndType(@Param("groupBy") String groupBy);
+
+        @Query(value = """
+            SELECT buyer_id AS userId, SUM(kwh) AS kwhBought, COUNT(*) AS purchaseCount
+            FROM transactions
+            GROUP BY buyer_id
+            """, nativeQuery = true)
+        List<Object[]> findKwhBoughtPerUser();
+
+        @Query(value = """
+            SELECT seller_id AS userId, SUM(kwh) AS kwhSold, COUNT(*) AS saleCount
+            FROM transactions
+            GROUP BY seller_id
+            """, nativeQuery = true)
+        List<Object[]> findKwhSoldPerUser();
 }
