@@ -111,55 +111,82 @@ public class ReportController {
         ));
     }
 
-    @GetMapping("/commissions")
-    public ResponseEntity<?> getCommissions(
-            @RequestParam(defaultValue = "month") String groupBy,
-            @RequestParam(defaultValue = "0")     int page,
-            @RequestParam(defaultValue = "10")    int size) {
+    @GetMapping("/producer-efficiency")
+    public ResponseEntity<?> getProducerEfficiency(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
 
-        List<Object[]> rows = transactionRepository.findCommissionsByPeriod(groupBy);
+        List<Object[]> rows = transactionRepository.findProducerEfficiencyData();
 
-        List<Map<String, Object>> breakdown = rows.stream().map(row -> {
+        List<Map<String, Object>> producers = rows.stream().map(row -> {
+            String producerName  = (String)  row[0];
+            long   totalOffers   = ((Number) row[1]).longValue();
+            long   soldOffers    = ((Number) row[2]).longValue();
+            double avgPriceSold  = ((Number) row[3]).doubleValue();
+            double avgPriceBase  = ((Number) row[4]).doubleValue();
+            double avgDaysToSell = ((Number) row[5]).doubleValue();
+
+            double conversionRate   = totalOffers > 0
+                ? (double) soldOffers / totalOffers * 100 : 0;
+            double pricePerformance = avgPriceBase > 0
+                ? (avgPriceSold / avgPriceBase - 1) * 100 : 0;
+            double speedScore = avgDaysToSell > 0
+                ? Math.max(0, 100 - avgDaysToSell * 5) : 100;
+
+            // Score: 40% conversion + 20% price performance + 40% speed
+            double normalizedPrice = Math.min(Math.max(pricePerformance + 100, 0), 200);
+            double score = (conversionRate * 0.4)
+                         + (normalizedPrice * 0.2)
+                         + (speedScore * 0.4);
+
+            String classification = score >= 70 ? "EFICIENTE"
+                : score >= 40 ? "PROMEDIO" : "INEFICIENTE";
+
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("period",           row[0]);
-            m.put("totalCommission",  round(((Number) row[1]).doubleValue()));
-            m.put("transactionCount", ((Number) row[2]).longValue());
-            m.put("avgCommission",    round(((Number) row[3]).doubleValue()));
-            m.put("totalVolume",      round(((Number) row[4]).doubleValue()));
+            m.put("producerName",     producerName);
+            m.put("totalOffers",      totalOffers);
+            m.put("soldOffers",       soldOffers);
+            m.put("conversionRate",   Math.round(conversionRate * 100.0) / 100.0);
+            m.put("avgPriceSold",     round(avgPriceSold));
+            m.put("avgPriceBase",     round(avgPriceBase));
+            m.put("pricePerformance", Math.round(pricePerformance * 100.0) / 100.0);
+            m.put("avgDaysToSell",    Math.round(avgDaysToSell * 10.0) / 10.0);
+            m.put("score",            Math.round(score * 10.0) / 10.0);
+            m.put("classification",   classification);
             return m;
-        }).collect(Collectors.toList());
+        })
+        .sorted((a, b) -> Double.compare(
+            ((Number) b.get("score")).doubleValue(),
+            ((Number) a.get("score")).doubleValue()))
+        .collect(Collectors.toList());
 
-        double grandTotal = breakdown.stream()
-            .mapToDouble(r -> ((Number) r.get("totalCommission")).doubleValue())
-            .sum();
-        long totalTx = breakdown.stream()
-            .mapToLong(r -> ((Number) r.get("transactionCount")).longValue())
-            .sum();
-        double totalVolume = breakdown.stream()
-            .mapToDouble(r -> ((Number) r.get("totalVolume")).doubleValue())
-            .sum();
+        long efficient   = producers.stream().filter(p -> "EFICIENTE".equals(p.get("classification"))).count();
+        long average     = producers.stream().filter(p -> "PROMEDIO".equals(p.get("classification"))).count();
+        long inefficient = producers.stream().filter(p -> "INEFICIENTE".equals(p.get("classification"))).count();
 
-        // Paginate breakdown
-        int totalElements = breakdown.size();
+        // Compute summary from full list before pagination
+        int totalElements = producers.size();
         int totalPages    = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
-        int fromIndex     = Math.min(page * size, totalElements);
-        int toIndex       = Math.min(fromIndex + size, totalElements);
-        List<Map<String, Object>> pagedBreakdown = breakdown.subList(fromIndex, toIndex);
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("groupBy", groupBy);
-        response.put("totalElements", totalElements);
-        response.put("totalPages", totalPages);
-        response.put("number", page);
-        response.put("size", size);
-        response.put("last", page >= totalPages - 1);
-        response.put("grandTotal", round(grandTotal));
-        response.put("totalTx", totalTx);
-        response.put("totalVolume", round(totalVolume));
-        response.put("feeRate", 2.0);
-        response.put("breakdown", pagedBreakdown);
+        // Apply pagination
+        int fromIndex = Math.min(page * size, totalElements);
+        int toIndex   = Math.min(fromIndex + size, totalElements);
+        List<Map<String, Object>> pagedProducers = producers.subList(fromIndex, toIndex);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of(
+            "totalElements", totalElements,
+            "totalPages",    totalPages,
+            "number",        page,
+            "size",          size,
+            "last",          page >= totalPages - 1,
+            "summary", Map.of(
+                "totalProducers", totalElements,
+                "efficient",      efficient,
+                "average",        average,
+                "inefficient",    inefficient
+            ),
+            "producers", pagedProducers
+        ));
     }
 
     @GetMapping("/market-summary")

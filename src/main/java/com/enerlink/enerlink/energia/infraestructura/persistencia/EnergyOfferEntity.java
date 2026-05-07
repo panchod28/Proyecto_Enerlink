@@ -2,6 +2,7 @@ package com.enerlink.enerlink.energia.infraestructura.persistencia;
 
 import com.enerlink.enerlink.energia.dominio.modelo.SaleType;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -25,6 +26,9 @@ public class EnergyOfferEntity {
 
     @Enumerated(EnumType.STRING)
     private SaleType saleType;
+
+    @Column(name = "created_at")
+    private java.time.LocalDateTime createdAt;
 
     // getters y setters
     public Long getId() {
@@ -66,6 +70,9 @@ public class EnergyOfferEntity {
     public void setSaleType(SaleType saleType) {
         this.saleType = saleType;
     }
+
+    public java.time.LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(java.time.LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public boolean isAvailable() {
         return available;

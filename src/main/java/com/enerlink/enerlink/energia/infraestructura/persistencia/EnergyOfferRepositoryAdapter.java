@@ -35,6 +35,7 @@ public class EnergyOfferRepositoryAdapter implements EnergyOfferRepositoryPort {
         entity.setPrice(offer.getPrice());
         entity.setSaleType(offer.getSaleType());
         entity.setAvailable(offer.isAvailable());
+        entity.setCreatedAt(offer.getCreatedAt());
 
         EnergyOfferEntity saved = jpaRepository.save(entity);
 
@@ -48,6 +49,7 @@ public class EnergyOfferRepositoryAdapter implements EnergyOfferRepositoryPort {
                 saved.getPrice(),
                 saved.getSaleType());
         result.setAvailable(saved.isAvailable());
+        result.setCreatedAt(saved.getCreatedAt());
         return result;
     }
 
@@ -67,6 +69,7 @@ public class EnergyOfferRepositoryAdapter implements EnergyOfferRepositoryPort {
                             entity.getPrice(),
                             entity.getSaleType());
                     offer.setAvailable(entity.isAvailable());
+                    offer.setCreatedAt(entity.getCreatedAt());
                     return offer;
                 })
                 .toList();
@@ -87,6 +90,7 @@ public class EnergyOfferRepositoryAdapter implements EnergyOfferRepositoryPort {
                             entity.getPrice(),
                             entity.getSaleType());
                     offer.setAvailable(entity.isAvailable());
+                    offer.setCreatedAt(entity.getCreatedAt());
                     return offer;
                 });
     }
@@ -112,6 +116,7 @@ public class EnergyOfferRepositoryAdapter implements EnergyOfferRepositoryPort {
                             entity.getPrice(),
                             entity.getSaleType());
                     offer.setAvailable(entity.isAvailable());
+                    offer.setCreatedAt(entity.getCreatedAt());
                     return offer;
                 });
     }
@@ -133,13 +138,14 @@ public class EnergyOfferRepositoryAdapter implements EnergyOfferRepositoryPort {
                                                         entity.getPrice(),
                                                         entity.getSaleType());
                                         offer.setAvailable(entity.isAvailable());
+                                        offer.setCreatedAt(entity.getCreatedAt());
                                         return offer;
                                 })
                                 .toList();
         }
 
         @Override
-        public Optional<EnergyOffer> findById(Long id) {
+    public Optional<EnergyOffer> findById(Long id) {
         return jpaRepository.findById(id)
                 .map(entity -> {
                     User producer = userRepository
@@ -153,6 +159,7 @@ public class EnergyOfferRepositoryAdapter implements EnergyOfferRepositoryPort {
                             entity.getPrice(),
                             entity.getSaleType());
                     offer.setAvailable(entity.isAvailable());
+                    offer.setCreatedAt(entity.getCreatedAt());
                     return offer;
                 });
     }

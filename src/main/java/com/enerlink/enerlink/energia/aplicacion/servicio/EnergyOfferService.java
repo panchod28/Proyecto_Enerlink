@@ -51,6 +51,7 @@ public class EnergyOfferService {
         EnergySaleFactory factory = factoryMap.get(saleType);
 
         EnergyOffer offer = factory.createEnergyOffer(null, producer, kwh, price);
+        offer.setCreatedAt(java.time.LocalDateTime.now());
 
         SaleProcess process = factory.createSaleProcess();
         process.execute(offer, producer, kwh);

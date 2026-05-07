@@ -10,6 +10,7 @@ public class EnergyOffer implements Prototype<EnergyOffer> {
     private double price;
     private SaleType saleType;
     private boolean available = true;
+    private java.time.LocalDateTime createdAt;
 
     public EnergyOffer() {
     }
@@ -33,6 +34,7 @@ public class EnergyOffer implements Prototype<EnergyOffer> {
         this.price = original.price;
         this.saleType = original.saleType;
         this.available = original.available;
+        this.createdAt = original.createdAt;
     }
 
     @Override
@@ -69,6 +71,9 @@ public class EnergyOffer implements Prototype<EnergyOffer> {
 
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }
+
+    public java.time.LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(java.time.LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public EnergyOffer cloneWithNewId(Long newId) {
         EnergyOffer clone = this.clone();

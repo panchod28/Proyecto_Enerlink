@@ -61,4 +61,26 @@ public interface TransactionJpaRepository
             ORDER BY 1 DESC
             """, nativeQuery = true)
         List<Object[]> findCommissionsByPeriod(@Param("groupBy") String groupBy);
+
+        @Query(value = """
+            SELECT
+                u.nombre                                                AS producerName,
+                COUNT(DISTINCT eo.id)                                  AS totalOffers,
+                COUNT(DISTINCT t.id)                                   AS soldOffers,
+                COALESCE(AVG(t.price), 0)                              AS avgPriceSold,
+                COALESCE(AVG(eo.price), 0)                             AS avgPriceBase,
+                COALESCE(AVG(
+                    EXTRACT(EPOCH FROM (t.timestamp - eo.created_at)) / 86400.0
+                ), 0)                                                  AS avgDaysToSell
+            FROM users u
+            JOIN energy_offer eo ON eo.producer_id = u.id
+            LEFT JOIN transactions t ON t.seller_id = u.id
+                AND t.offer_id = eo.id
+            WHERE u.rol IN ('PRODUCER', 'MIXED')
+              AND eo.created_at IS NOT NULL
+            GROUP BY u.id, u.nombre
+            HAVING COUNT(DISTINCT eo.id) > 0
+            ORDER BY COUNT(DISTINCT t.id) DESC
+            """, nativeQuery = true)
+        List<Object[]> findProducerEfficiencyData();
 }
