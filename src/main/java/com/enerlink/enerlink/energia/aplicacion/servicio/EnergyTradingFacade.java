@@ -137,8 +137,24 @@ public class EnergyTradingFacade {
     private Transaction applyDecoratorChain(Transaction transaction) {
         TransactionComponent component = new ConcreteTransactionComponent(transaction);
         component = new ValidatingTransactionDecorator(component);
-        component = new FeeTransactionDecorator(component, 0.0);
+        component = new FeeTransactionDecorator(component, 0.0, 2.0);
         component = new AuditingTransactionDecorator(component);
+
+        // Cast component to FeeTransactionDecorator to access getFeeAmount()
+        double commission = 0.0;
+        if (component instanceof FeeTransactionDecorator feeDecorator) {
+            commission = feeDecorator.getFeeAmount();
+        } else {
+            // Walk decorator chain to find FeeTransactionDecorator
+            TransactionComponent current = component;
+            while (current instanceof com.enerlink.enerlink.energia.dominio.decorador.TransactionDecorator decorator) {
+                if (decorator instanceof FeeTransactionDecorator feeDecorator) {
+                    commission = feeDecorator.getFeeAmount();
+                    break;
+                }
+                current = decorator.getWrapped();
+            }
+        }
 
         return Transaction.builder()
                 .id(component.getId())
@@ -148,6 +164,7 @@ public class EnergyTradingFacade {
                 .kwh(component.getKwh())
                 .price(component.getPrice())
                 .timestamp(component.getTimestamp())
+                .commission(commission)
                 .build();
     }
 

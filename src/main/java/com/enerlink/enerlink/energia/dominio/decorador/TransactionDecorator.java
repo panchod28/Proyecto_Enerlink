@@ -57,7 +57,7 @@ public abstract class TransactionDecorator implements TransactionComponent {
         return wrappedComponent.getTimestamp();
     }
 
-    protected TransactionComponent getWrapped() {
+    public TransactionComponent getWrapped() {
         return wrappedComponent;
     }
 }

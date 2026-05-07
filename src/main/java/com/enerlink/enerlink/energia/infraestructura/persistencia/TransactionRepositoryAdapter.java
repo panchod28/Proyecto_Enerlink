@@ -52,6 +52,7 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
                 entity.setKwh(transaction.getKwh());
                 entity.setPrice(transaction.getPrice());
                 entity.setTimestamp(transaction.getTimestamp());
+                entity.setCommission(transaction.getCommission());
 
                 TransactionEntity saved = jpaRepository.save(entity);
 
@@ -83,6 +84,7 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
                                 .kwh(saved.getKwh())
                                 .price(saved.getPrice())
                                 .timestamp(saved.getTimestamp())
+                                .commission(saved.getCommission())
                                 .build();
         }
 
@@ -129,6 +131,7 @@ public class TransactionRepositoryAdapter implements TransactionRepositoryPort {
                                 .kwh(entity.getKwh())
                                 .price(entity.getPrice())
                                 .timestamp(entity.getTimestamp())
+                                .commission(entity.getCommission())
                                 .build();
         }
 

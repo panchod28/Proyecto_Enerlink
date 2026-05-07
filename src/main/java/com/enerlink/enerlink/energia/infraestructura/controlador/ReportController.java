@@ -39,7 +39,9 @@ public class ReportController {
 
     @GetMapping("/volume")
     public ResponseEntity<?> getEnergyVolume(
-            @RequestParam(defaultValue = "month") String groupBy) {
+            @RequestParam(defaultValue = "month") String groupBy,
+            @RequestParam(defaultValue = "0")     int page,
+            @RequestParam(defaultValue = "10")    int size) {
 
         List<Object[]> rows = transactionRepository.findVolumeByPeriodAndType(groupBy);
 
@@ -81,8 +83,20 @@ public class ReportController {
             .filter(r -> "AUCTION".equals(r[1]))
             .mapToDouble(r -> ((Number) r[2]).doubleValue()).sum();
 
+        // Paginate breakdown
+        int totalElements = breakdown.size();
+        int totalPages    = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
+        int fromIndex     = Math.min(page * size, totalElements);
+        int toIndex       = Math.min(fromIndex + size, totalElements);
+        List<Map<String, Object>> pagedBreakdown = breakdown.subList(fromIndex, toIndex);
+
         return ResponseEntity.ok(Map.of(
-            "groupBy", groupBy,
+            "groupBy",       groupBy,
+            "totalElements", totalElements,
+            "totalPages",    totalPages,
+            "number",        page,
+            "size",          size,
+            "last",          page >= totalPages - 1,
             "kpis", Map.of(
                 "totalKwh",    round(totalKwh),
                 "totalValue",  round(totalValue),
@@ -93,8 +107,59 @@ public class ReportController {
                 "directShare", totalKwh > 0
                     ? Math.round(directKwh / totalKwh * 100 * 10.0) / 10.0 : 0.0
             ),
-            "breakdown", breakdown
+            "breakdown", pagedBreakdown
         ));
+    }
+
+    @GetMapping("/commissions")
+    public ResponseEntity<?> getCommissions(
+            @RequestParam(defaultValue = "month") String groupBy,
+            @RequestParam(defaultValue = "0")     int page,
+            @RequestParam(defaultValue = "10")    int size) {
+
+        List<Object[]> rows = transactionRepository.findCommissionsByPeriod(groupBy);
+
+        List<Map<String, Object>> breakdown = rows.stream().map(row -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("period",           row[0]);
+            m.put("totalCommission",  round(((Number) row[1]).doubleValue()));
+            m.put("transactionCount", ((Number) row[2]).longValue());
+            m.put("avgCommission",    round(((Number) row[3]).doubleValue()));
+            m.put("totalVolume",      round(((Number) row[4]).doubleValue()));
+            return m;
+        }).collect(Collectors.toList());
+
+        double grandTotal = breakdown.stream()
+            .mapToDouble(r -> ((Number) r.get("totalCommission")).doubleValue())
+            .sum();
+        long totalTx = breakdown.stream()
+            .mapToLong(r -> ((Number) r.get("transactionCount")).longValue())
+            .sum();
+        double totalVolume = breakdown.stream()
+            .mapToDouble(r -> ((Number) r.get("totalVolume")).doubleValue())
+            .sum();
+
+        // Paginate breakdown
+        int totalElements = breakdown.size();
+        int totalPages    = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
+        int fromIndex     = Math.min(page * size, totalElements);
+        int toIndex       = Math.min(fromIndex + size, totalElements);
+        List<Map<String, Object>> pagedBreakdown = breakdown.subList(fromIndex, toIndex);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("groupBy", groupBy);
+        response.put("totalElements", totalElements);
+        response.put("totalPages", totalPages);
+        response.put("number", page);
+        response.put("size", size);
+        response.put("last", page >= totalPages - 1);
+        response.put("grandTotal", round(grandTotal));
+        response.put("totalTx", totalTx);
+        response.put("totalVolume", round(totalVolume));
+        response.put("feeRate", 2.0);
+        response.put("breakdown", pagedBreakdown);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/market-summary")

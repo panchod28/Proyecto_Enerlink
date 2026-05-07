@@ -44,4 +44,21 @@ public interface TransactionJpaRepository
             GROUP BY seller_id
             """, nativeQuery = true)
         List<Object[]> findKwhSoldPerUser();
+
+        @Query(value = """
+            SELECT
+                CASE
+                    WHEN :groupBy = 'day'   THEN TO_CHAR(timestamp, 'YYYY-MM-DD')
+                    WHEN :groupBy = 'week'  THEN TO_CHAR(DATE_TRUNC('week', timestamp), 'YYYY-MM-DD')
+                    WHEN :groupBy = 'month' THEN TO_CHAR(timestamp, 'YYYY-MM')
+                END          AS period,
+                SUM(commission)     AS totalCommission,
+                COUNT(*)            AS transactionCount,
+                AVG(commission)     AS avgCommission,
+                SUM(kwh * price)    AS totalVolume
+            FROM transactions
+            GROUP BY 1
+            ORDER BY 1 DESC
+            """, nativeQuery = true)
+        List<Object[]> findCommissionsByPeriod(@Param("groupBy") String groupBy);
 }

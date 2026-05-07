@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import com.enerlink.enerlink.usuario.infraestructura.persistencia.UserEntity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -35,6 +36,9 @@ public class TransactionEntity {
     private double kwh;
     private double price;
     private LocalDateTime timestamp;
+
+    @Column(name = "commission")
+    private double commission;
 
     public Long getId() {
         return id;
@@ -90,5 +94,13 @@ public class TransactionEntity {
 
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public double getCommission() {
+        return commission;
+    }
+
+    public void setCommission(double commission) {
+        this.commission = commission;
     }
 }

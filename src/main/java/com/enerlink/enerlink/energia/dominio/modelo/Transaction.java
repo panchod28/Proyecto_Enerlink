@@ -14,6 +14,7 @@ public final class Transaction {
     private final double kwh;
     private final double price;
     private final LocalDateTime timestamp;
+    private final double commission;
 
     private Transaction(Builder builder) {
         this.id = builder.id;
@@ -23,6 +24,7 @@ public final class Transaction {
         this.kwh = builder.kwh;
         this.price = builder.price;
         this.timestamp = builder.timestamp != null ? builder.timestamp : LocalDateTime.now();
+        this.commission = builder.commission;
     }
 
     public Long getId() {
@@ -53,6 +55,10 @@ public final class Transaction {
         return timestamp;
     }
 
+    public double getCommission() {
+        return commission;
+    }
+
     public double getTotalAmount() {
         return kwh * price;
     }
@@ -71,6 +77,7 @@ public final class Transaction {
                 ", kwh=" + kwh +
                 ", price=" + price +
                 ", timestamp=" + timestamp +
+                ", commission=" + commission +
                 '}';
     }
 
@@ -82,6 +89,7 @@ public final class Transaction {
         private double kwh;
         private double price;
         private LocalDateTime timestamp;
+        private double commission;
 
         private Builder() {
         }
@@ -118,6 +126,11 @@ public final class Transaction {
 
         public Builder timestamp(LocalDateTime timestamp) {
             this.timestamp = timestamp;
+            return this;
+        }
+
+        public Builder commission(double commission) {
+            this.commission = commission;
             return this;
         }
 
