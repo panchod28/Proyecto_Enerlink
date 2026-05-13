@@ -54,6 +54,13 @@ public class ReportController {
         return ResponseEntity.ok(reportService.getProducerEfficiency(page, size));
     }
 
+    @GetMapping("/buyer-activity")
+    public ResponseEntity<?> getBuyerActivity(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(reportService.getBuyerActivity(page, size));
+    }
+
     @GetMapping("/user-energy-profile")
     public ResponseEntity<?> getUserEnergyProfiles(
             @RequestParam(required = false)    String classification,

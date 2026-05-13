@@ -284,6 +284,94 @@ public class ReportService {
         return result;
     }
 
+    // ─── REPORT 6: Buyer Activity ─────────────────────────────────────
+
+    public Map<String, Object> getBuyerActivity(int page, int size) {
+        List<Object[]> rows = transactionRepository.findBuyerActivityData();
+
+        List<Map<String, Object>> buyers = new ArrayList<>();
+        double maxSpent = 0;
+        long   maxTx    = 0;
+
+        for (Object[] row : rows) {
+            String  buyerName        = (String)  row[0];
+            String  role             = (String)  row[1];
+            long    totalTransactions = ((Number) row[2]).longValue();
+            double  totalKwhBought   = ((Number) row[3]).doubleValue();
+            double  totalSpent       = ((Number) row[4]).doubleValue();
+            double  avgSpentPerTx    = ((Number) row[5]).doubleValue();
+            long    directCount      = ((Number) row[6]).longValue();
+            long    auctionCount     = ((Number) row[7]).longValue();
+            double  avgPricePerKwh   = ((Number) row[8]).doubleValue();
+
+            String classification = totalTransactions >= 5 ? "FRECUENTE"
+                : totalTransactions >= 2 ? "OCASIONAL" : "INACTIVO";
+            String preference = directCount >= auctionCount ? "DIRECT" : "AUCTION";
+
+            if (totalSpent       > maxSpent) maxSpent = totalSpent;
+            if (totalTransactions > maxTx)    maxTx    = totalTransactions;
+
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("buyerName",         buyerName);
+            m.put("role",              role);
+            m.put("totalTransactions", totalTransactions);
+            m.put("totalKwhBought",    round(totalKwhBought));
+            m.put("totalSpent",        round(totalSpent));
+            m.put("avgSpentPerTx",     round(avgSpentPerTx));
+            m.put("avgPricePerKwh",    round(avgPricePerKwh));
+            m.put("directCount",       directCount);
+            m.put("auctionCount",      auctionCount);
+            m.put("preference",        preference);
+            m.put("classification",     classification);
+            buyers.add(m);
+        }
+
+        final double fMaxSpent = maxSpent > 0 ? maxSpent : 1;
+        final long   fMaxTx    = maxTx    > 0 ? maxTx    : 1;
+
+        buyers.forEach(b -> {
+            double spent = ((Number) b.get("totalSpent")).doubleValue();
+            long   tx    = ((Number) b.get("totalTransactions")).longValue();
+            double score = (spent / fMaxSpent * 60.0) + ((double) tx / fMaxTx * 40.0);
+            b.put("score", Math.round(score * 10.0) / 10.0);
+        });
+
+        buyers.sort((a, b) -> Double.compare(
+            ((Number) b.get("score")).doubleValue(),
+            ((Number) a.get("score")).doubleValue()));
+
+        long frequent   = 0;
+        long occasional = 0;
+        long inactive   = 0;
+        for (Map<String, Object> b : buyers) {
+            String c = (String) b.get("classification");
+            if      ("FRECUENTE".equals(c)) frequent++;
+            else if ("OCASIONAL".equals(c)) occasional++;
+            else                            inactive++;
+        }
+
+        int totalElements = buyers.size();
+        int totalPages    = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
+        int fromIndex     = Math.min(page * size, totalElements);
+        int toIndex       = Math.min(fromIndex + size, totalElements);
+        List<Map<String, Object>> pagedBuyers = buyers.subList(fromIndex, toIndex);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("totalElements", totalElements);
+        result.put("totalPages",    totalPages);
+        result.put("number",        page);
+        result.put("size",          size);
+        result.put("last",          page >= totalPages - 1);
+        result.put("summary", Map.of(
+            "totalBuyers", totalElements,
+            "frequent",    frequent,
+            "occasional",  occasional,
+            "inactive",    inactive
+        ));
+        result.put("buyers", pagedBuyers);
+        return result;
+    }
+
     // ─── REPORT 5: User Energy Profile ──────────────────────────────
 
     public Map<String, Object> getUserEnergyProfiles(

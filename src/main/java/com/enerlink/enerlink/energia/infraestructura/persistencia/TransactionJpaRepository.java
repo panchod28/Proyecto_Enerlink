@@ -83,4 +83,23 @@ public interface TransactionJpaRepository
             ORDER BY COUNT(DISTINCT t.id) DESC
             """, nativeQuery = true)
         List<Object[]> findProducerEfficiencyData();
+
+        @Query(value = """
+            SELECT
+                u.nombre                                            AS buyerName,
+                u.rol                                              AS role,
+                COUNT(t.id)                                        AS totalTransactions,
+                SUM(t.kwh)                                         AS totalKwhBought,
+                SUM(t.kwh * t.price)                               AS totalSpent,
+                AVG(t.kwh * t.price)                               AS avgSpentPerTx,
+                COUNT(t.id) FILTER (WHERE eo.sale_type = 'DIRECT') AS directCount,
+                COUNT(t.id) FILTER (WHERE eo.sale_type = 'AUCTION') AS auctionCount,
+                AVG(t.price)                                       AS avgPricePerKwh
+            FROM transactions t
+            JOIN users u ON u.id = t.buyer_id
+            JOIN energy_offer eo ON eo.id = t.offer_id
+            GROUP BY u.id, u.nombre, u.rol
+            ORDER BY SUM(t.kwh * t.price) DESC
+            """, nativeQuery = true)
+        List<Object[]> findBuyerActivityData();
 }
