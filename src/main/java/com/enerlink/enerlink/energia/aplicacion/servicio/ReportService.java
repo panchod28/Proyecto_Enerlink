@@ -1,6 +1,7 @@
 package com.enerlink.enerlink.energia.aplicacion.servicio;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -369,6 +370,167 @@ public class ReportService {
             "inactive",    inactive
         ));
         result.put("buyers", pagedBuyers);
+        return result;
+    }
+
+    // ─── REPORT 7: Offer Monitoring ─────────────────────────────────
+
+    public Map<String, Object> getOfferMonitoring(
+            String state,
+            String saleType,
+            Double minPrice,
+            Double maxPrice,
+            int page,
+            int size) {
+
+        List<Map<String, Object>> items;
+        Map<String, Object> summary;
+        int totalElements;
+        int totalPages;
+
+        if ("COMPARATIVA".equals(state)) {
+            List<Object[]> activeRows = offerJpaRepository.findActiveOffersForMonitoring(null, null, null);
+            List<Object[]> soldRows   = offerJpaRepository.findSoldOffersForMonitoring(null, null, null);
+
+            double activeValue   = activeRows.stream().mapToDouble(r -> ((Number) r[6]).doubleValue()).sum();
+            double activeKwh     = activeRows.stream().mapToDouble(r -> ((Number) r[4]).doubleValue()).sum();
+            double activeAvgPrice = activeRows.isEmpty() ? 0
+                : activeRows.stream().mapToDouble(r -> ((Number) r[5]).doubleValue()).average().orElse(0);
+            int    activeCount   = activeRows.size();
+
+            double soldRevenue    = soldRows.stream().mapToDouble(r -> ((Number) r[7]).doubleValue()).sum();
+            double soldAvgPrice   = soldRows.isEmpty() ? 0
+                : soldRows.stream().mapToDouble(r -> ((Number) r[6]).doubleValue()).average().orElse(0);
+            int    soldCount      = soldRows.size();
+
+            int    totalOffers    = activeCount + soldCount;
+            double conversionRate = totalOffers > 0 ? (double) soldCount / totalOffers * 100 : 0;
+
+            summary = new LinkedHashMap<>();
+            summary.put("totalOffers",       totalOffers);
+            summary.put("activeCount",       activeCount);
+            summary.put("soldCount",         soldCount);
+            summary.put("conversionRate",    Math.round(conversionRate * 100.0) / 100.0);
+            summary.put("totalActiveValue",  round(activeValue));
+            summary.put("totalRevenueValue", round(soldRevenue));
+            summary.put("avgActivePrice",    round(activeAvgPrice));
+            summary.put("avgSoldPrice",      round(soldAvgPrice));
+
+            totalElements = 0;
+            totalPages    = 0;
+            items         = Collections.emptyList();
+        } else if ("VENDIDAS".equals(state)) {
+            List<Object[]> rows = offerJpaRepository.findSoldOffersForMonitoring(saleType, minPrice, maxPrice);
+            items = new ArrayList<>();
+            for (Object[] row : rows) {
+                long   offerId      = ((Number) row[0]).longValue();
+                String producerName = (String)  row[1];
+                String producerRole = (String)  row[2];
+                String st           = (String)  row[3];
+                double kwh          = ((Number) row[4]).doubleValue();
+                double basePrice    = ((Number) row[5]).doubleValue();
+                double soldPrice    = ((Number) row[6]).doubleValue();
+                double totalValue   = ((Number) row[7]).doubleValue();
+                double commission   = ((Number) row[8]).doubleValue();
+                String soldAt       = String.valueOf(row[9]);
+                String buyerName    = (String)  row[10];
+
+                double perf = basePrice > 0 ? (soldPrice / basePrice - 1) * 100 : 0;
+
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("offerId",          offerId);
+                m.put("producerName",     producerName);
+                m.put("producerRole",     producerRole);
+                m.put("saleType",         st);
+                m.put("kwh",              round(kwh));
+                m.put("basePrice",        round(basePrice));
+                m.put("soldPrice",        round(soldPrice));
+                m.put("totalValue",       round(totalValue));
+                m.put("commission",       round(commission));
+                m.put("pricePerformance", Math.round(perf * 100.0) / 100.0);
+                m.put("soldAt",           soldAt);
+                m.put("buyerName",        buyerName);
+                items.add(m);
+            }
+
+            double totalKwh       = rows.stream().mapToDouble(r -> ((Number) r[4]).doubleValue()).sum();
+            double totalRevenue   = rows.stream().mapToDouble(r -> ((Number) r[7]).doubleValue()).sum();
+            double totalCommission = rows.stream().mapToDouble(r -> ((Number) r[8]).doubleValue()).sum();
+            double avgSoldPrice   = rows.isEmpty() ? 0
+                : rows.stream().mapToDouble(r -> ((Number) r[6]).doubleValue()).average().orElse(0);
+            long   directCount    = rows.stream().filter(r -> "DIRECT".equals(r[3])).count();
+            long   auctionCount   = rows.stream().filter(r -> "AUCTION".equals(r[3])).count();
+
+            summary = new LinkedHashMap<>();
+            summary.put("totalSold",       rows.size());
+            summary.put("totalKwh",        round(totalKwh));
+            summary.put("totalRevenue",    round(totalRevenue));
+            summary.put("totalCommission", round(totalCommission));
+            summary.put("avgSoldPrice",    round(avgSoldPrice));
+            summary.put("directCount",     directCount);
+            summary.put("auctionCount",    auctionCount);
+
+            totalElements = items.size();
+            totalPages    = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
+        } else {
+            // default: ACTIVAS
+            List<Object[]> rows = offerJpaRepository.findActiveOffersForMonitoring(saleType, minPrice, maxPrice);
+            items = new ArrayList<>();
+            for (Object[] row : rows) {
+                long   offerId      = ((Number) row[0]).longValue();
+                String producerName = (String)  row[1];
+                String producerRole = (String)  row[2];
+                String st           = (String)  row[3];
+                double kwh          = ((Number) row[4]).doubleValue();
+                double price        = ((Number) row[5]).doubleValue();
+                double totalValue   = ((Number) row[6]).doubleValue();
+                String createdAt    = String.valueOf(row[7]);
+
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("offerId",      offerId);
+                m.put("producerName", producerName);
+                m.put("producerRole", producerRole);
+                m.put("saleType",     st);
+                m.put("kwh",          round(kwh));
+                m.put("price",        round(price));
+                m.put("totalValue",   round(totalValue));
+                m.put("createdAt",    createdAt);
+                items.add(m);
+            }
+
+            double totalKwh     = rows.stream().mapToDouble(r -> ((Number) r[4]).doubleValue()).sum();
+            double totalValue   = rows.stream().mapToDouble(r -> ((Number) r[6]).doubleValue()).sum();
+            double avgPrice     = rows.isEmpty() ? 0
+                : rows.stream().mapToDouble(r -> ((Number) r[5]).doubleValue()).average().orElse(0);
+            long   directCount  = rows.stream().filter(r -> "DIRECT".equals(r[3])).count();
+            long   auctionCount = rows.stream().filter(r -> "AUCTION".equals(r[3])).count();
+
+            summary = new LinkedHashMap<>();
+            summary.put("totalActive",  rows.size());
+            summary.put("totalKwh",     round(totalKwh));
+            summary.put("totalValue",   round(totalValue));
+            summary.put("avgPrice",     round(avgPrice));
+            summary.put("directCount",  directCount);
+            summary.put("auctionCount", auctionCount);
+
+            totalElements = items.size();
+            totalPages    = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
+        }
+
+        int fromIndex = Math.min(page * size, totalElements);
+        int toIndex   = Math.min(fromIndex + size, totalElements);
+        List<Map<String, Object>> pagedItems = totalElements > 0
+            ? items.subList(fromIndex, toIndex) : items;
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("state",         state);
+        result.put("totalElements", totalElements);
+        result.put("totalPages",    totalPages);
+        result.put("number",        page);
+        result.put("size",          size);
+        result.put("last",          page >= totalPages - 1);
+        result.put("summary",       summary);
+        result.put("items",         pagedItems);
         return result;
     }
 

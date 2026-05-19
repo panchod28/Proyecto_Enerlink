@@ -51,7 +51,7 @@ public interface EnergyOfferJpaRepository
         @Param("endDate")   String endDate,
         @Param("saleType")  String saleType);
 
-    @Query(value = """
+        @Query(value = """
         SELECT
             TO_CHAR(DATE_TRUNC('week', t.timestamp), 'YYYY-MM-DD') AS week,
             eo.sale_type                                            AS saleType,
@@ -72,4 +72,55 @@ public interface EnergyOfferJpaRepository
         @Param("endDate")     String endDate,
         @Param("saleType")    String saleType,
         @Param("minAvgPrice") Double minAvgPrice);
+
+    @Query(value = """
+        SELECT
+            eo.id                           AS offerId,
+            u.nombre                        AS producerName,
+            u.rol                           AS producerRole,
+            eo.sale_type                    AS saleType,
+            eo.kwh                          AS kwh,
+            eo.price                        AS price,
+            eo.kwh * eo.price               AS totalValue,
+            eo.created_at                   AS createdAt
+        FROM energy_offer eo
+        JOIN users u ON u.id = eo.producer_id
+        WHERE eo.available = true
+          AND (:saleType IS NULL OR eo.sale_type = :saleType)
+          AND (:minPrice IS NULL OR eo.price >= :minPrice)
+          AND (:maxPrice IS NULL OR eo.price <= :maxPrice)
+        ORDER BY eo.created_at DESC
+        """, nativeQuery = true)
+    List<Object[]> findActiveOffersForMonitoring(
+        @Param("saleType")  String saleType,
+        @Param("minPrice")  Double minPrice,
+        @Param("maxPrice")  Double maxPrice);
+
+    @Query(value = """
+        SELECT
+            eo.id                              AS offerId,
+            u.nombre                           AS producerName,
+            u.rol                              AS producerRole,
+            eo.sale_type                       AS saleType,
+            eo.kwh                             AS kwh,
+            eo.price                           AS basePrice,
+            t.price                            AS soldPrice,
+            t.kwh * t.price                    AS totalValue,
+            t.commission                       AS commission,
+            t.timestamp                        AS soldAt,
+            buyer.nombre                       AS buyerName
+        FROM energy_offer eo
+        JOIN transactions t   ON t.offer_id  = eo.id
+        JOIN users u          ON u.id        = eo.producer_id
+        JOIN users buyer      ON buyer.id    = t.buyer_id
+        WHERE eo.available = false
+          AND (:saleType IS NULL OR eo.sale_type = :saleType)
+          AND (:minPrice IS NULL OR t.price >= :minPrice)
+          AND (:maxPrice IS NULL OR t.price <= :maxPrice)
+        ORDER BY t.timestamp DESC
+        """, nativeQuery = true)
+    List<Object[]> findSoldOffersForMonitoring(
+        @Param("saleType")  String saleType,
+        @Param("minPrice")  Double minPrice,
+        @Param("maxPrice")  Double maxPrice);
 }

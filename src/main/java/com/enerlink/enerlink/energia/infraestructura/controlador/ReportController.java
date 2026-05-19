@@ -61,6 +61,18 @@ public class ReportController {
         return ResponseEntity.ok(reportService.getBuyerActivity(page, size));
     }
 
+    @GetMapping("/offer-monitoring")
+    public ResponseEntity<?> getOfferMonitoring(
+            @RequestParam(defaultValue = "ACTIVAS") String state,
+            @RequestParam(required = false)          String saleType,
+            @RequestParam(required = false)          Double minPrice,
+            @RequestParam(required = false)          Double maxPrice,
+            @RequestParam(defaultValue = "0")        int page,
+            @RequestParam(defaultValue = "15")       int size) {
+        return ResponseEntity.ok(
+            reportService.getOfferMonitoring(state, saleType, minPrice, maxPrice, page, size));
+    }
+
     @GetMapping("/user-energy-profile")
     public ResponseEntity<?> getUserEnergyProfiles(
             @RequestParam(required = false)    String classification,
