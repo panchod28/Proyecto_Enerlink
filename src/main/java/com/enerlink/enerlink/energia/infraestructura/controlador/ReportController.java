@@ -61,6 +61,21 @@ public class ReportController {
         return ResponseEntity.ok(reportService.getBuyerActivity(page, size));
     }
 
+    @GetMapping("/user-ranking")
+    public ResponseEntity<?> getUserRanking(
+            @RequestParam(defaultValue = "SPEND") String strategy,
+            @RequestParam(required = false)        String role,
+            @RequestParam(defaultValue = "0")      int page,
+            @RequestParam(defaultValue = "20")     int size) {
+        return ResponseEntity.ok(
+            reportService.getUserRanking(strategy, role, page, size));
+    }
+
+    @GetMapping("/analytics-dashboard")
+    public ResponseEntity<?> getAnalyticsDashboard() {
+        return ResponseEntity.ok(reportService.getAnalyticsDashboard());
+    }
+
     @GetMapping("/offer-monitoring")
     public ResponseEntity<?> getOfferMonitoring(
             @RequestParam(defaultValue = "ACTIVAS") String state,

@@ -102,4 +102,26 @@ public interface TransactionJpaRepository
             ORDER BY SUM(t.kwh * t.price) DESC
             """, nativeQuery = true)
         List<Object[]> findBuyerActivityData();
+
+        @Query(value = """
+            SELECT
+                u.id                                                        AS userId,
+                u.nombre                                                    AS userName,
+                u.rol                                                       AS role,
+                COALESCE(SUM(t_buy.kwh * t_buy.price), 0)                  AS totalSpent,
+                COALESCE(SUM(t_buy.kwh), 0)                                AS kwhBought,
+                COALESCE(SUM(t_sell.kwh), 0)                               AS kwhSold,
+                COALESCE(COUNT(DISTINCT t_buy.id), 0)                      AS buyCount,
+                COALESCE(COUNT(DISTINCT t_sell.id), 0)                     AS sellCount,
+                COALESCE(SUM(t_sell.kwh * t_sell.price), 0)               AS totalEarned
+            FROM users u
+            LEFT JOIN transactions t_buy  ON t_buy.buyer_id  = u.id
+            LEFT JOIN transactions t_sell ON t_sell.seller_id = u.id
+            WHERE (:role IS NULL OR u.rol = :role)
+            GROUP BY u.id, u.nombre, u.rol
+            HAVING COALESCE(COUNT(DISTINCT t_buy.id), 0) > 0
+                OR COALESCE(COUNT(DISTINCT t_sell.id), 0) > 0
+            ORDER BY u.nombre ASC
+            """, nativeQuery = true)
+        List<Object[]> findUserRankingData(@Param("role") String role);
 }

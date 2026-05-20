@@ -373,6 +373,125 @@ public class ReportService {
         return result;
     }
 
+    // ─── REPORT 8: User Ranking ─────────────────────────────────────
+
+    public Map<String, Object> getUserRanking(
+            String strategy,
+            String role,
+            int page,
+            int size) {
+
+        List<Object[]> rows = transactionRepository.findUserRankingData(
+            role != null && !role.isBlank() ? role : null
+        );
+
+        List<Map<String, Object>> users = new ArrayList<>();
+        for (Object[] row : rows) {
+            long   userId      = ((Number) row[0]).longValue();
+            String userName    = (String)  row[1];
+            String userRole    = (String)  row[2];
+            double totalSpent  = ((Number) row[3]).doubleValue();
+            double kwhBought   = ((Number) row[4]).doubleValue();
+            double kwhSold     = ((Number) row[5]).doubleValue();
+            long   buyCount    = ((Number) row[6]).longValue();
+            long   sellCount   = ((Number) row[7]).longValue();
+            double totalEarned = ((Number) row[8]).doubleValue();
+
+            double totalKwh        = kwhBought + kwhSold;
+            long   totalTx         = buyCount + sellCount;
+            double efficiencyRatio = totalTx > 0
+                ? (double) sellCount / totalTx * 100 : 0;
+
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("userId",         userId);
+            m.put("userName",       userName);
+            m.put("role",           userRole);
+            m.put("totalSpent",     round(totalSpent));
+            m.put("kwhBought",      round(kwhBought));
+            m.put("kwhSold",        round(kwhSold));
+            m.put("totalKwh",       round(totalKwh));
+            m.put("buyCount",       buyCount);
+            m.put("sellCount",      sellCount);
+            m.put("totalTx",        totalTx);
+            m.put("totalEarned",    round(totalEarned));
+            m.put("efficiencyRatio",Math.round(efficiencyRatio * 100.0) / 100.0);
+            users.add(m);
+        }
+
+        double maxSpent      = users.stream().mapToDouble(u -> ((Number) u.get("totalSpent")).doubleValue()).max().orElse(1);
+        double maxKwh        = users.stream().mapToDouble(u -> ((Number) u.get("totalKwh")).doubleValue()).max().orElse(1);
+        long   maxTx         = users.stream().mapToLong(u  -> ((Number) u.get("totalTx")).longValue()).max().orElse(1);
+        double maxEfficiency = users.stream().mapToDouble(u -> ((Number) u.get("efficiencyRatio")).doubleValue()).max().orElse(1);
+
+        String strategyLabel = switch (strategy != null ? strategy : "SPEND") {
+            case "VOLUME"     -> "Volumen kWh";
+            case "ACTIVITY"   -> "Actividad";
+            case "EFFICIENCY" -> "Eficiencia";
+            default           -> "Gasto Total";
+        };
+
+        for (Map<String, Object> u : users) {
+            double score = switch (strategy != null ? strategy : "SPEND") {
+                case "VOLUME" -> {
+                    double kwh = ((Number) u.get("totalKwh")).doubleValue();
+                    yield maxKwh > 0 ? kwh / maxKwh * 100 : 0;
+                }
+                case "ACTIVITY" -> {
+                    long tx = ((Number) u.get("totalTx")).longValue();
+                    yield maxTx > 0 ? (double) tx / maxTx * 100 : 0;
+                }
+                case "EFFICIENCY" -> {
+                    double eff = ((Number) u.get("efficiencyRatio")).doubleValue();
+                    yield maxEfficiency > 0 ? eff / maxEfficiency * 100 : 0;
+                }
+                default -> {
+                    double spent = ((Number) u.get("totalSpent")).doubleValue();
+                    yield maxSpent > 0 ? spent / maxSpent * 100 : 0;
+                }
+            };
+            u.put("score",         Math.round(score * 10.0) / 10.0);
+            u.put("strategyLabel", strategyLabel);
+        }
+
+        users.sort((a, b) -> Double.compare(
+            ((Number) b.get("score")).doubleValue(),
+            ((Number) a.get("score")).doubleValue()));
+
+        long totalUsers    = users.size();
+        double avgScore    = users.stream()
+            .mapToDouble(u -> ((Number) u.get("score")).doubleValue())
+            .average().orElse(0);
+        double totalKwhAll = users.stream()
+            .mapToDouble(u -> ((Number) u.get("totalKwh")).doubleValue())
+            .sum();
+        double totalSpentAll = users.stream()
+            .mapToDouble(u -> ((Number) u.get("totalSpent")).doubleValue())
+            .sum();
+
+        int totalElements = users.size();
+        int totalPages    = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
+        int fromIndex     = Math.min(page * size, totalElements);
+        int toIndex       = Math.min(fromIndex + size, totalElements);
+        List<Map<String, Object>> pagedUsers = users.subList(fromIndex, toIndex);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("strategy",      strategy != null ? strategy : "SPEND");
+        result.put("strategyLabel", strategyLabel);
+        result.put("totalElements", totalElements);
+        result.put("totalPages",    totalPages);
+        result.put("number",        page);
+        result.put("size",          size);
+        result.put("last",          page >= totalPages - 1);
+        result.put("summary", Map.of(
+            "totalUsers",    totalUsers,
+            "avgScore",      Math.round(avgScore * 10.0) / 10.0,
+            "totalKwh",      round(totalKwhAll),
+            "totalSpent",    round(totalSpentAll)
+        ));
+        result.put("users", pagedUsers);
+        return result;
+    }
+
     // ─── REPORT 7: Offer Monitoring ─────────────────────────────────
 
     public Map<String, Object> getOfferMonitoring(
@@ -611,6 +730,139 @@ public class ReportService {
             .filter(p -> userId.equals(((Number) p.get("userId")).longValue()))
             .findFirst()
             .orElse(null);
+    }
+
+    // ─── REPORT 9: Analytics Dashboard ──────────────────────────────
+
+    public Map<String, Object> getAnalyticsDashboard() {
+
+        // ── METRIC GROUP 1: Commissions ──────────────────────────────
+        List<Object[]> commissionRows = transactionRepository.findCommissionsByPeriod("month");
+        double grandTotal = commissionRows.stream()
+            .mapToDouble(r -> ((Number) r[1]).doubleValue()).sum();
+        long totalTx = commissionRows.stream()
+            .mapToLong(r -> ((Number) r[2]).longValue()).sum();
+        double totalVolume = commissionRows.stream()
+            .mapToDouble(r -> ((Number) r[4]).doubleValue()).sum();
+        double avgCommission = totalTx > 0 ? grandTotal / totalTx : 0;
+
+        Map<String, Object> commissions = new LinkedHashMap<>();
+        commissions.put("grandTotal",     round(grandTotal));
+        commissions.put("totalTx",        totalTx);
+        commissions.put("totalVolume",    round(totalVolume));
+        commissions.put("avgCommission",  round(avgCommission));
+        commissions.put("feeRate",        2.0);
+
+        // ── METRIC GROUP 2: Volume ───────────────────────────────────
+        List<Object[]> volumeRows = transactionRepository.findVolumeByPeriodAndType("month");
+        double totalKwh   = volumeRows.stream().mapToDouble(r -> ((Number) r[2]).doubleValue()).sum();
+        double totalValue = volumeRows.stream().mapToDouble(r -> ((Number) r[5]).doubleValue()).sum();
+        double directKwh  = volumeRows.stream()
+            .filter(r -> "DIRECT".equals(r[1]))
+            .mapToDouble(r -> ((Number) r[2]).doubleValue()).sum();
+        double auctionKwh = volumeRows.stream()
+            .filter(r -> "AUCTION".equals(r[1]))
+            .mapToDouble(r -> ((Number) r[2]).doubleValue()).sum();
+        double directShare = totalKwh > 0
+            ? Math.round(directKwh / totalKwh * 100 * 10.0) / 10.0 : 0;
+
+        Map<String, Object> volume = new LinkedHashMap<>();
+        volume.put("totalKwh",    round(totalKwh));
+        volume.put("totalValue",  round(totalValue));
+        volume.put("directKwh",   round(directKwh));
+        volume.put("auctionKwh",  round(auctionKwh));
+        volume.put("directShare", directShare);
+        volume.put("totalTx",     volumeRows.stream().mapToLong(r -> ((Number) r[3]).longValue()).sum());
+
+        // ── METRIC GROUP 3: Market ───────────────────────────────────
+        List<Object[]> distribution = offerJpaRepository.findMarketDistribution(null, null, null);
+        long totalOffers = distribution.stream().mapToLong(r -> ((Number) r[1]).longValue()).sum();
+        long totalSold   = distribution.stream().mapToLong(r -> ((Number) r[2]).longValue()).sum();
+        long totalActive = distribution.stream().mapToLong(r -> ((Number) r[3]).longValue()).sum();
+        double globalConversion = totalOffers > 0
+            ? Math.round((double) totalSold / totalOffers * 100 * 100.0) / 100.0 : 0;
+        double avgPrice = distribution.stream()
+            .mapToDouble(r -> ((Number) r[4]).doubleValue()).average().orElse(0);
+
+        Map<String, Object> market = new LinkedHashMap<>();
+        market.put("totalOffers",      totalOffers);
+        market.put("totalSold",        totalSold);
+        market.put("totalActive",      totalActive);
+        market.put("globalConversion", globalConversion);
+        market.put("avgPrice",         round(avgPrice));
+
+        // ── METRIC GROUP 4: Producers ────────────────────────────────
+        List<Object[]> producerRows = transactionRepository.findProducerEfficiencyData();
+        long efficient   = 0; long average = 0; long inefficient = 0;
+        for (Object[] row : producerRows) {
+            long   totalOffersProd = ((Number) row[1]).longValue();
+            long   soldOffersProd  = ((Number) row[2]).longValue();
+            double avgPriceSold    = ((Number) row[3]).doubleValue();
+            double avgPriceBase    = ((Number) row[4]).doubleValue();
+            double avgDays         = ((Number) row[5]).doubleValue();
+            double conv  = totalOffersProd > 0 ? (double) soldOffersProd / totalOffersProd * 100 : 0;
+            double perf  = avgPriceBase > 0 ? (avgPriceSold / avgPriceBase - 1) * 100 : 0;
+            double speed = avgDays > 0 ? Math.max(0, 100 - avgDays * 5) : 100;
+            double norm  = Math.min(Math.max(perf + 100, 0), 200);
+            double score = (conv * 0.4) + (norm * 0.2) + (speed * 0.4);
+            if      (score >= 70) efficient++;
+            else if (score >= 40) average++;
+            else                  inefficient++;
+        }
+
+        Map<String, Object> producers = new LinkedHashMap<>();
+        producers.put("totalProducers", producerRows.size());
+        producers.put("efficient",      efficient);
+        producers.put("average",        average);
+        producers.put("inefficient",    inefficient);
+
+        // ── METRIC GROUP 5: Energy Profiles ──────────────────────────
+        List<Map<String, Object>> profiles = computeUserEnergyProfiles();
+        long exporters      = profiles.stream().filter(p -> "EXPORTADOR_NETO".equals(p.get("classification"))).count();
+        long selfSufficient = profiles.stream().filter(p -> "AUTOSUFICIENTE".equals(p.get("classification"))).count();
+        long dependent      = profiles.stream().filter(p -> "DEPENDIENTE".equals(p.get("classification"))).count();
+
+        Map<String, Object> energyProfiles = new LinkedHashMap<>();
+        energyProfiles.put("totalUsers",     profiles.size());
+        energyProfiles.put("exporters",      exporters);
+        energyProfiles.put("selfSufficient", selfSufficient);
+        energyProfiles.put("dependent",      dependent);
+
+        // ── METRIC GROUP 6: Buyers ───────────────────────────────────
+        List<Object[]> buyerRows = transactionRepository.findBuyerActivityData();
+        long frequent = 0; long occasional = 0; long inactive = 0;
+        double maxSpentB = buyerRows.stream()
+            .mapToDouble(r -> ((Number) r[4]).doubleValue()).max().orElse(1);
+        long maxTxB = buyerRows.stream()
+            .mapToLong(r -> ((Number) r[2]).longValue()).max().orElse(1);
+        for (Object[] row : buyerRows) {
+            long tx = ((Number) row[2]).longValue();
+            if      (tx >= 5) frequent++;
+            else if (tx >= 2) occasional++;
+            else              inactive++;
+        }
+        double totalBuyerSpent = buyerRows.stream()
+            .mapToDouble(r -> ((Number) r[4]).doubleValue()).sum();
+        double totalBuyerKwh = buyerRows.stream()
+            .mapToDouble(r -> ((Number) r[3]).doubleValue()).sum();
+
+        Map<String, Object> buyers = new LinkedHashMap<>();
+        buyers.put("totalBuyers",  buyerRows.size());
+        buyers.put("frequent",     frequent);
+        buyers.put("occasional",   occasional);
+        buyers.put("inactive",     inactive);
+        buyers.put("totalSpent",   round(totalBuyerSpent));
+        buyers.put("totalKwh",     round(totalBuyerKwh));
+
+        // ── ASSEMBLE RESULT ──────────────────────────────────────────
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("commissions",    commissions);
+        result.put("volume",         volume);
+        result.put("market",         market);
+        result.put("producers",      producers);
+        result.put("energyProfiles", energyProfiles);
+        result.put("buyers",         buyers);
+        return result;
     }
 
     // ─── Private helpers ─────────────────────────────────────────────
