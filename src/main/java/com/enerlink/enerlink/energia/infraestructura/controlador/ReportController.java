@@ -76,6 +76,19 @@ public class ReportController {
         return ResponseEntity.ok(reportService.getAnalyticsDashboard());
     }
 
+    @GetMapping("/transaction-timeline")
+    public ResponseEntity<?> getTransactionTimeline(
+            @RequestParam(required = false)        String saleType,
+            @RequestParam(required = false)        String startDate,
+            @RequestParam(required = false)        String endDate,
+            @RequestParam(defaultValue = "ASC")    String order,
+            @RequestParam(defaultValue = "0")      int page,
+            @RequestParam(defaultValue = "10")     int size) {
+        return ResponseEntity.ok(
+            reportService.getTransactionTimeline(
+                saleType, startDate, endDate, order, page, size));
+    }
+
     @GetMapping("/offer-monitoring")
     public ResponseEntity<?> getOfferMonitoring(
             @RequestParam(defaultValue = "ACTIVAS") String state,

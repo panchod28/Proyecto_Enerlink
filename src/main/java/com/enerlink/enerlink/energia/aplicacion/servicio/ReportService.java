@@ -492,6 +492,94 @@ public class ReportService {
         return result;
     }
 
+    // ─── REPORT 10: Transaction Timeline ────────────────────────────
+
+    public Map<String, Object> getTransactionTimeline(
+            String saleType,
+            String startDate,
+            String endDate,
+            String order,
+            int page,
+            int size) {
+
+        List<Object[]> rows = transactionRepository.findTransactionTimeline(
+            saleType  != null && !saleType.isBlank()  ? saleType  : null,
+            startDate != null && !startDate.isBlank() ? startDate : null,
+            endDate   != null && !endDate.isBlank()   ? endDate   : null
+        );
+
+        List<Map<String, Object>> transactions = new ArrayList<>();
+        for (Object[] row : rows) {
+            long   transactionId = ((Number) row[0]).longValue();
+            String timestamp     = String.valueOf(row[1]);
+            String saleTypeVal   = (String)  row[2];
+            double kwh           = ((Number) row[3]).doubleValue();
+            double price         = ((Number) row[4]).doubleValue();
+            double totalValue    = ((Number) row[5]).doubleValue();
+            double commission    = ((Number) row[6]).doubleValue();
+            String buyerName     = (String)  row[7];
+            String buyerRole     = (String)  row[8];
+            String sellerName    = (String)  row[9];
+            String sellerRole    = (String)  row[10];
+
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("transactionId", transactionId);
+            m.put("timestamp",     timestamp);
+            m.put("saleType",      saleTypeVal);
+            m.put("kwh",           round(kwh));
+            m.put("price",         round(price));
+            m.put("totalValue",    round(totalValue));
+            m.put("commission",    round(commission));
+            m.put("buyerName",     buyerName);
+            m.put("buyerRole",     buyerRole);
+            m.put("sellerName",    sellerName);
+            m.put("sellerRole",    sellerRole);
+            transactions.add(m);
+        }
+
+        if ("DESC".equalsIgnoreCase(order)) {
+            java.util.Collections.reverse(transactions);
+        }
+
+        double totalKwh        = transactions.stream()
+            .mapToDouble(t -> ((Number) t.get("kwh")).doubleValue()).sum();
+        double totalValue      = transactions.stream()
+            .mapToDouble(t -> ((Number) t.get("totalValue")).doubleValue()).sum();
+        double totalCommission = transactions.stream()
+            .mapToDouble(t -> ((Number) t.get("commission")).doubleValue()).sum();
+        long   directCount     = transactions.stream()
+            .filter(t -> "DIRECT".equals(t.get("saleType"))).count();
+        long   auctionCount    = transactions.stream()
+            .filter(t -> "AUCTION".equals(t.get("saleType"))).count();
+        double avgValue        = transactions.isEmpty() ? 0
+            : totalValue / transactions.size();
+
+        int totalElements = transactions.size();
+        int totalPages    = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
+        int fromIndex     = Math.min(page * size, totalElements);
+        int toIndex       = Math.min(fromIndex + size, totalElements);
+        List<Map<String, Object>> pagedTransactions = transactions.subList(fromIndex, toIndex);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("order",         order != null ? order : "ASC");
+        result.put("totalElements", totalElements);
+        result.put("totalPages",    totalPages);
+        result.put("number",        page);
+        result.put("size",          size);
+        result.put("last",          page >= totalPages - 1);
+        result.put("summary", Map.of(
+            "totalTransactions", totalElements,
+            "totalKwh",          round(totalKwh),
+            "totalValue",        round(totalValue),
+            "totalCommission",   round(totalCommission),
+            "directCount",       directCount,
+            "auctionCount",      auctionCount,
+            "avgValue",          round(avgValue)
+        ));
+        result.put("transactions", pagedTransactions);
+        return result;
+    }
+
     // ─── REPORT 7: Offer Monitoring ─────────────────────────────────
 
     public Map<String, Object> getOfferMonitoring(

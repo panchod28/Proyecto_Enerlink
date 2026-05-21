@@ -124,4 +124,31 @@ public interface TransactionJpaRepository
             ORDER BY u.nombre ASC
             """, nativeQuery = true)
         List<Object[]> findUserRankingData(@Param("role") String role);
+
+        @Query(value = """
+            SELECT
+                t.id                                AS transactionId,
+                t.timestamp                         AS timestamp,
+                eo.sale_type                        AS saleType,
+                t.kwh                               AS kwh,
+                t.price                             AS price,
+                t.kwh * t.price                     AS totalValue,
+                t.commission                        AS commission,
+                buyer.nombre                        AS buyerName,
+                buyer.rol                           AS buyerRole,
+                seller.nombre                       AS sellerName,
+                seller.rol                          AS sellerRole
+            FROM transactions t
+            JOIN energy_offer eo  ON eo.id      = t.offer_id
+            JOIN users buyer      ON buyer.id   = t.buyer_id
+            JOIN users seller     ON seller.id  = t.seller_id
+            WHERE (:saleType  IS NULL OR eo.sale_type = :saleType)
+              AND (:startDate IS NULL OR t.timestamp >= TO_TIMESTAMP(:startDate, 'YYYY-MM-DD'))
+              AND (:endDate   IS NULL OR t.timestamp <= TO_TIMESTAMP(:endDate,   'YYYY-MM-DD') + INTERVAL '1 day')
+            ORDER BY t.timestamp ASC
+            """, nativeQuery = true)
+        List<Object[]> findTransactionTimeline(
+            @Param("saleType")  String saleType,
+            @Param("startDate") String startDate,
+            @Param("endDate")   String endDate);
 }
