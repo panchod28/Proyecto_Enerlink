@@ -580,6 +580,36 @@ public class ReportService {
         return result;
     }
 
+    // ─── REPORT 11: Comparative Report ──────────────────────────────
+
+    public Map<String, Object> getComparativeReport(
+            String dimension,
+            String periodAStart,
+            String periodAEnd,
+            String periodBStart,
+            String periodBEnd) {
+
+        ComparativeReportTemplate template = switch (
+                dimension != null ? dimension.toUpperCase() : "COMMISSIONS") {
+            case "VOLUME"     -> new VolumeComparisonTemplate(
+                                    transactionRepository, offerJpaRepository);
+            case "CONVERSION" -> new ConversionComparisonTemplate(
+                                    transactionRepository, offerJpaRepository);
+            default           -> new CommissionsComparisonTemplate(
+                                    transactionRepository, offerJpaRepository);
+        };
+
+        Map<String, Object> comparison =
+            template.generate(periodAStart, periodAEnd, periodBStart, periodBEnd);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("dimension",   dimension != null ? dimension.toUpperCase() : "COMMISSIONS");
+        result.put("periodA",     Map.of("start", periodAStart, "end", periodAEnd));
+        result.put("periodB",     Map.of("start", periodBStart, "end", periodBEnd));
+        result.put("comparison",  comparison);
+        return result;
+    }
+
     // ─── REPORT 7: Offer Monitoring ─────────────────────────────────
 
     public Map<String, Object> getOfferMonitoring(

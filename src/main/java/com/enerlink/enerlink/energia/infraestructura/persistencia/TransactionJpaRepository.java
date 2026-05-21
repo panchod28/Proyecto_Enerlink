@@ -151,4 +151,39 @@ public interface TransactionJpaRepository
             @Param("saleType")  String saleType,
             @Param("startDate") String startDate,
             @Param("endDate")   String endDate);
+
+        @Query(value = """
+            SELECT
+                COUNT(t.id)                         AS transactionCount,
+                COALESCE(SUM(t.kwh), 0)             AS totalKwh,
+                COALESCE(SUM(t.kwh * t.price), 0)   AS totalValue,
+                COALESCE(SUM(t.commission), 0)      AS totalCommission,
+                COALESCE(AVG(t.price), 0)           AS avgPrice,
+                COALESCE(AVG(t.kwh * t.price), 0)   AS avgValue
+            FROM transactions t
+            WHERE t.timestamp >= TO_TIMESTAMP(:startDate, 'YYYY-MM-DD')
+              AND t.timestamp <= TO_TIMESTAMP(:endDate,   'YYYY-MM-DD') + INTERVAL '1 day'
+            """, nativeQuery = true)
+        Object[] findMetricsByPeriod(
+            @Param("startDate") String startDate,
+            @Param("endDate")   String endDate);
+
+        @Query(value = """
+            SELECT
+                COUNT(DISTINCT eo.id)                                       AS totalOffers,
+                COUNT(DISTINCT t.id)                                        AS soldOffers,
+                COALESCE(AVG(t.price), 0)                                   AS avgSoldPrice,
+                COALESCE(AVG(eo.price), 0)                                  AS avgBasePrice,
+                COUNT(DISTINCT eo.id) FILTER (WHERE eo.sale_type = 'DIRECT')  AS directOffers,
+                COUNT(DISTINCT eo.id) FILTER (WHERE eo.sale_type = 'AUCTION') AS auctionOffers
+            FROM energy_offer eo
+            LEFT JOIN transactions t ON t.offer_id = eo.id
+                AND t.timestamp >= TO_TIMESTAMP(:startDate, 'YYYY-MM-DD')
+                AND t.timestamp <= TO_TIMESTAMP(:endDate,   'YYYY-MM-DD') + INTERVAL '1 day'
+            WHERE eo.created_at >= TO_TIMESTAMP(:startDate, 'YYYY-MM-DD')
+              AND eo.created_at <= TO_TIMESTAMP(:endDate,   'YYYY-MM-DD') + INTERVAL '1 day'
+            """, nativeQuery = true)
+        Object[] findConversionByPeriod(
+            @Param("startDate") String startDate,
+            @Param("endDate")   String endDate);
 }

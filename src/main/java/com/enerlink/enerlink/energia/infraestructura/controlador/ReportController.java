@@ -89,6 +89,18 @@ public class ReportController {
                 saleType, startDate, endDate, order, page, size));
     }
 
+    @GetMapping("/comparative")
+    public ResponseEntity<?> getComparativeReport(
+            @RequestParam(defaultValue = "COMMISSIONS") String dimension,
+            @RequestParam String periodAStart,
+            @RequestParam String periodAEnd,
+            @RequestParam String periodBStart,
+            @RequestParam String periodBEnd) {
+        return ResponseEntity.ok(
+            reportService.getComparativeReport(
+                dimension, periodAStart, periodAEnd, periodBStart, periodBEnd));
+    }
+
     @GetMapping("/offer-monitoring")
     public ResponseEntity<?> getOfferMonitoring(
             @RequestParam(defaultValue = "ACTIVAS") String state,
